@@ -229,6 +229,7 @@ window.addEventListener("load", e => {
         document.getElementById("tab").style.display = "none"
         btn_start_day.style.display = "block"
         btn_stop_day.style.display = "none"
+        controller.stop()
         e.preventDefault()
     })
 
