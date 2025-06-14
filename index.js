@@ -180,8 +180,8 @@ window.addEventListener("load", e => {
     const cm = new Course_manager();
     const recorder = new Recorder();
     recorder.start()
-    const controller = new IntervalController(recorder.captureSilentPhoto, 2000)
-    // controller.start()
+    const controller = new IntervalController(recorder.captureSilentPhoto, 10000)
+    controller.start()
     const btn_analyser = document.getElementById("analyser")
     const btn_start_course = document.getElementById("start-course")
     const btn_stop_course = document.getElementById("stop-course")
