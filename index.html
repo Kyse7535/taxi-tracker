@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accueil</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="manifest" href="manifest.json">
+
+</head>
+
+<body>
+    <header></header>
+    <main>
+        <button id="start-day">Commencer journee</button>
+        <button id="stop-day" style="display: none;">Terminer journee</button>
+        <div id="tab" style="display: none;">
+            <input type="number" name="montant" id="montant" min="0" max="50000">
+            <button id="start-course" class="start">Demarrer une course</button>
+            <button id="stop-course" class="hide">Fin de course</button>
+            <h5>Courses du jour</h5>
+            <p>Aucune course</p>
+            <div>
+                <video id="video" autoplay muted playsinline style="display: none;" width="320" height="240"></video>
+                <canvas id="canvas" class="hidden" style="display: none;" width="320" height="240"></canvas>
+                <div id="photo-gallery" style="display:flex;flex-wrap:wrap;"></div>
+            </div>
+        </div>
+    </main>
+    <footer></footer>
+    <!-- Charger TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <!-- Charger BlazeFace -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.5"></script>
+    <script type="module" src="index.js"></script>
+</body>
+
+</html>
