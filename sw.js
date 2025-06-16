@@ -30,7 +30,7 @@ const limitCacheSize = (name, size) => {
     })
 }
 
-//install serice worker
+// install serice worker 
 self.addEventListener("install", (event) => {
     // console.log('service worker has been installed')
     event.waitUntil(
