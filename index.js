@@ -30,10 +30,46 @@ class Course_manager {
     constructor() {
         this.courses = []
         this.course_en_cours = null;
+        this.montant = document.getElementById("montant");
     }
 
-    creer_course(id, montant) {
-        this.course_en_cours = new Course(id, montant);
+    start(controller) {
+        const btn_start_course = document.getElementById("start-course")
+        const btn_stop_course = document.getElementById("stop-course")
+        btn_start_course.addEventListener("click", e => {
+            if (this.montant.value === 0 || this.montant.value === "") {
+                alert("Merci de saisir le montant avant de lancer une course")
+                return;
+            }
+            if (this.course_en_cours !== null) {
+                alert("course dejà en cours.")
+                return;
+            }
+            this.creer_course(this.courses.length + 1);
+            alert("course demarré");
+            controller.stop();
+            e.preventDefault();
+        })
+        btn_stop_course.addEventListener("click", e => {
+            if (this.course_en_cours === null) {
+                alert("Aucune course en cours");
+                return;
+            }
+            //termine la course et l'enregistre
+            this.course_en_cours.terminer()
+            this.courses.push(this.course_en_cours);
+            this.course_en_cours = null;
+            console.log("courses: ", this.courses)
+            console.log("total: ", this.calculer_total())
+
+            //start controller
+            controller.start()
+            e.preventDefault();
+        })
+    }
+
+    creer_course(id) {
+        this.course_en_cours = new Course(id, this.montant);
     }
 
     calculer_total() {
@@ -146,6 +182,35 @@ class Recorder {
     }
 }
 
+class DayManager {
+    constructor(controller) {
+        const btn_start_day = document.getElementById("start-day")
+        const btn_stop_day = document.getElementById("stop-day")
+        btn_start_day.addEventListener("click", e => {
+            const identifiant = document.getElementById("identifiant")
+            if (identifiant.value === "") {
+                alert("Merci de saisir votre identifiant")
+                return;
+            }
+            identifiant.style.display = "none";
+            btn_start_day.style.display = "none"
+            controller.start()
+            document.getElementById("tab").style.display = "block"
+            btn_stop_day.style.display = "block"
+            btn_start_day.style.display = "none"
+            e.preventDefault()
+        })
+        btn_stop_day.addEventListener("click", e => {
+            document.getElementById("tab").style.display = "none"
+            btn_start_day.style.display = "block"
+            identifiant.style.display = "block"
+            btn_stop_day.style.display = "none"
+            controller.stop()
+            e.preventDefault()
+        })
+    }
+}
+
 class IntervalController {
     constructor(callback, delay) {
         this.callback = callback; // Fonction à exécuter
@@ -177,60 +242,17 @@ class IntervalController {
 
 
 window.addEventListener("load", e => {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+            .then((reg) => console.log("service worker registred", reg))
+            .catch((err) => console.log("service worker not registered", err))
+    }
     const cm = new Course_manager();
     const recorder = new Recorder();
     recorder.start()
     const controller = new IntervalController(recorder.captureSilentPhoto, 10000)
-    controller.start()
+    cm.start(controller)
     const btn_analyser = document.getElementById("analyser")
-    const btn_start_course = document.getElementById("start-course")
-    const btn_stop_course = document.getElementById("stop-course")
-    const btn_start_day = document.getElementById("start-day")
-    const btn_stop_day = document.getElementById("stop-day")
 
-    const montant = document.getElementById("montant");
-    btn_start_course.addEventListener("click", e => {
-        if (montant.value === 0 || montant.value === "") {
-            alert("Merci de saisir le montant avant de lancer une course")
-            return;
-        }
-        if (cm.course_en_cours !== null) {
-            alert("course dejà en cours.")
-            return;
-        }
-        cm.creer_course(cm.courses.length + 1, parseInt(montant.value));
-        console.log("course demarré");
-        controller.stop();
-        e.preventDefault();
-    })
-    btn_stop_course.addEventListener("click", e => {
-        if (cm.course_en_cours === null) {
-            alert("Aucune course en cours");
-            return;
-        }
-        //termine la course et l'enregistre
-        cm.course_en_cours.terminer()
-        cm.courses.push(cm.course_en_cours);
-        cm.course_en_cours = null;
-        console.log("courses: ", cm.courses)
-        console.log("total: ", cm.calculer_total())
-
-        //start controller
-        controller.start()
-        e.preventDefault();
-    })
-    btn_start_day.addEventListener("click", e => {
-        document.getElementById("tab").style.display = "block"
-        btn_stop_day.style.display = "block"
-        btn_start_day.style.display = "none"
-        e.preventDefault()
-    })
-    btn_stop_day.addEventListener("click", e => {
-        document.getElementById("tab").style.display = "none"
-        btn_start_day.style.display = "block"
-        btn_stop_day.style.display = "none"
-        controller.stop()
-        e.preventDefault()
-    })
-
+    const day_manager = new DayManager(controller);
 })

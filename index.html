@@ -13,8 +13,11 @@
 <body>
     <header></header>
     <main>
-        <button id="start-day">Commencer journee</button>
-        <button id="stop-day" style="display: none;">Terminer journee</button>
+        <div>
+            <input required type="text" name="identifiant" id="identifiant">
+            <button id="start-day">Commencer journee</button>
+        </div>
+
         <div id="tab" style="display: none;">
             <input type="number" name="montant" id="montant" min="0" max="50000">
             <button id="start-course" class="start">Demarrer une course</button>
@@ -26,6 +29,7 @@
                 <canvas id="canvas" class="hidden" style="display: none;" width="320" height="240"></canvas>
                 <div id="photo-gallery" style="display:flex;flex-wrap:wrap;"></div>
             </div>
+            <button id="stop-day">Terminer journee</button>
         </div>
     </main>
     <footer></footer>
