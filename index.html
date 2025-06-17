@@ -27,10 +27,14 @@
             <div>
                 <video id="video" autoplay muted playsinline style="display: none;" width="320" height="240"></video>
                 <canvas id="canvas" class="hidden" style="display: none;" width="320" height="240"></canvas>
-                <div id="photo-gallery" style="display:flex;flex-wrap:wrap;"></div>
+                <div id="photo-gallery" style="display:flex; flex-wrap:wrap;"></div>
+                <button id="stop-day">Terminer journee</button>
             </div>
-            <button id="stop-day">Terminer journee</button>
+            <button id="pause-day" style="display: none;">Marquer une pause</button>
+            <button id="end-pause-day" style="display: none;">Fin de pause</button>
+
         </div>
+
     </main>
     <footer></footer>
     <!-- Charger TensorFlow.js -->
