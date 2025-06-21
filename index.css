@@ -1,0 +1,154 @@
+/* Reset & base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+    background-color: #f4f6f8;
+    color: #222;
+    line-height: 1.5;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Container layout */
+.container {
+    max-width: 600px;
+    margin: auto;
+    padding: 20px;
+}
+
+/* Card-like section */
+.card {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+/* Form layout */
+input[type="text"],
+input[type="number"] {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 4px 0;
+    transition: background-color 0.2s ease;
+}
+
+button.primary {
+    background-color: #007bff;
+    color: white;
+}
+
+button.start {
+    background-color: #28a745;
+    color: white;
+}
+
+button.stop {
+    background-color: #dc3545;
+    color: white;
+}
+
+button.secondary {
+    background-color: #ffc107;
+    color: #333;
+}
+
+button.success {
+    background-color: #17a2b8;
+    color: white;
+}
+
+button.danger {
+    background-color: #e53935;
+    color: white;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+/* Video & photo layout */
+.video-container {
+    margin: 20px 0;
+}
+
+#photo-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#photo-gallery img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+/* Layout helpers */
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.button-group {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+    }
+
+    .form-row,
+    .button-group {
+        flex-direction: column;
+    }
+
+    #photo-gallery img {
+        width: 100%;
+        max-width: 150px;
+        height: auto;
+    }
+}
+
+footer {
+    text-align: center;
+    font-size: 12px;
+    color: #888;
+    margin-top: 40px;
+    position: absolute;
+    bottom: 5%;
+    left: 0;
+    right: 0;
+}

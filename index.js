@@ -12,25 +12,13 @@ class Course {
 
     terminer() {
         this.heure_arrivee = new Date().toLocaleString("fr-FR", { timeZone: "UTC" });
-        this.duree = this.calcul_duree(this.heure_arrivee, this.heure_depart)
-    }
-
-    calcul_duree(date1, date2) {
-        const diffMs = Math.abs(date2 - date1);
-        const diffSec = Math.floor(diffMs / 1000);
-        const diffMin = Math.floor(diffSec / 60);
-        const diffHeures = Math.floor(diffMin / 60);
-        const diffJours = Math.floor(diffHeures / 24);
-
-        return `${diffJours} j, ${diffHeures} h, ${diffMin} m, ${diffSec} s`
     }
 }
 
 class Course_manager {
     constructor(pause_manager) {
-        this.courses = JSON.parse(localStorage.getItem("courses")) || []
-        this.course_en_cours = JSON.parse(localStorage.getItem("course_en_cours")) ?
-            Object.assign(new Course(), JSON.parse(localStorage.getItem("course_en_cours"))) : null;
+        const day = Object.assign(new Day(), JSON.parse(localStorage.getItem("day")))
+        this.course_en_cours = day.course_en_cours
         this.montant = document.getElementById("montant");
         this.btn_start_course = document.getElementById("start-course")
         this.btn_stop_course = document.getElementById("stop-course")
@@ -57,6 +45,7 @@ class Course_manager {
     start(controller) {
         let that = this
         this.btn_start_course.addEventListener("click", e => {
+
             if (this.montant.value === 0 || this.montant.value === "") {
                 alert("Merci de saisir le montant avant de lancer une course")
                 return;
@@ -65,7 +54,7 @@ class Course_manager {
                 alert("course dejà en cours.")
                 return;
             }
-            this.creer_course(this.courses.length + 1);
+            this.creer_course(Math.random() * 100);
             alert("course demarré");
 
             //retirer les boutons pauses et de fin de journée pendant la course
@@ -93,9 +82,12 @@ class Course_manager {
                 that.course_en_cours.terminer()
                 that.montant.value = 0
             }
-            that.courses.push({ ...this.course_en_cours });
+            const day = Object.assign(new Day(), JSON.parse(localStorage.getItem("day")))
+            day.courses.push({ ...this.course_en_cours })
+            day.course_en_cours = null
+
+            localStorage.setItem("day", JSON.stringify(day))
             that.course_en_cours = null;
-            console.log("total: ", this.calculer_total())
 
             that.btn_start_course.style.display = "block"
             that.btn_stop_course.style.display = "none"
@@ -108,10 +100,6 @@ class Course_manager {
             //affiche le btn fin de journée
             document.getElementById("stop-day").style.display = "block"
 
-
-            localStorage.setItem("courses", JSON.stringify(that.courses))
-            localStorage.removeItem("course_en_cours")
-
             //start controller
             controller.start()
             e.preventDefault();
@@ -119,12 +107,10 @@ class Course_manager {
     }
 
     creer_course(id) {
-        this.course_en_cours = new Course(id, this.montant.value);
-        localStorage.setItem("course_en_cours", JSON.stringify({ ...this.course_en_cours }))
-    }
-
-    calculer_total() {
-        return this.courses.reduce((acc, curr) => acc + curr.montant, 0)
+        this.course_en_cours = new Course(id, parseInt(this.montant.value));
+        const day = Object.assign(new Day(), JSON.parse(localStorage.getItem("day")))
+        day.course_en_cours = { ...this.course_en_cours }
+        localStorage.setItem("day", JSON.stringify(day))
     }
 
 }
@@ -255,6 +241,10 @@ class Day {
         this.heure_fin = null
         this.arret_en_cours = null
         this.status = "NOT_STARTED"
+        this.courses = []
+        this.course_en_cours = null
+        this.chauffeur = null
+        this.admin = null
     }
 }
 
@@ -288,11 +278,23 @@ class DayManager {
         this.btn_stop_day = document.getElementById("stop-day");
         this.btn_pause_day = document.getElementById("pause-day");
         this.btn_fin_pause_day = document.getElementById("end-pause-day");
-        const identifiant = localStorage.getItem("identifiant");
+        const identifiant = localStorage.getItem("identifiant")
+
         if (this.day.status === "STARTED") {
             this.display_btn()
         }
         this.btn_start_day.addEventListener("click", e => {
+            const _identifiant_value = document.getElementById("identifiant").value
+            if (!identifiant && _identifiant_value === "") {
+                alert("Merci de saisir votre identifiant")
+                return;
+            }
+            if (!identifiant) {
+                localStorage.setItem("identifiant", _identifiant_value)
+            }
+            if (_identifiant_value === "admin") {
+                window.location.href = "admin.html"
+            }
             this.start_day(identifiant);
             e.preventDefault();
         })
@@ -391,13 +393,7 @@ class DayManager {
         this.day.heure_debut = new Date().toLocaleString("fr-FR", { timeZone: "UTC" });
         this.day.status = "STARTED"
         localStorage.setItem("day", JSON.stringify(this.day))
-        if (!identifiant_saved && identifiant.value === "") {
-            alert("Merci de saisir votre identifiant")
-            return;
-        }
-        if (!identifiant_saved) {
-            localStorage.setItem("identifiant", identifiant.value)
-        }
+
         this.display_btn()
         this.controller.start()
     }

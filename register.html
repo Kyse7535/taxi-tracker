@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion des Chauffeurs avec Pagination</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="submit"],
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+
+        #result,
+        #chauffeursList {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f8ff;
+            border: 1px solid #0094ff;
+            border-radius: 8px;
+        }
+
+        .chauffeur {
+            border-bottom: 1px solid #ddd;
+            padding: 8px 0;
+        }
+
+        .actions button {
+            margin-top: 5px;
+            margin-right: 10px;
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+
+        #pagination {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #pagination button {
+            margin: 0 5px;
+            padding: 6px 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Enregistrement d'un Chauffeur</h2>
+    <form id="registerForm">
+        <label for="prenom">Prénom :</label>
+        <input type="text" id="prenom" name="prenom" required>
+
+        <label for="nom">Nom :</label>
+        <input type="text" id="nom" name="nom" required>
+
+        <input type="submit" value="Enregistrer">
+    </form>
+
+    <div id="result" style="display:none;"></div>
+
+    <h3>Chauffeurs enregistrés</h3>
+    <div id="chauffeursList"></div>
+
+    <div id="pagination"></div>
+
+    <script>
+        let chauffeurs = [];
+        let currentPage = 1;
+        const itemsPerPage = 1;
+
+        function generateUniqueId() {
+            return 'xxxx-4xxx-yxxx-xxxx'.replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function afficherChauffeurs() {
+            const listDiv = document.getElementById("chauffeursList");
+            listDiv.innerHTML = "";
+
+            if (chauffeurs.length === 0) {
+                listDiv.innerHTML = "<em>Aucun chauffeur enregistré.</em>";
+                document.getElementById("pagination").innerHTML = "";
+                return;
+            }
+
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageChauffeurs = chauffeurs.slice(start, end);
+
+            pageChauffeurs.forEach((chauffeur, index) => {
+                const chauffeurDiv = document.createElement("div");
+                chauffeurDiv.className = "chauffeur";
+                chauffeurDiv.innerHTML = `
+          <strong>${chauffeur.prenom} ${chauffeur.nom}</strong><br>
+          ID : <code>${chauffeur.id}</code>
+          <div class="actions">
+            <button onclick="modifierChauffeur(${start + index})">Modifier</button>
+            <button onclick="supprimerChauffeur(${start + index})" style="background:#ff5c5c;">Supprimer</button>
+          </div>
+        `;
+                listDiv.appendChild(chauffeurDiv);
+            });
+
+            afficherPagination();
+        }
+
+        function afficherPagination() {
+            const totalPages = Math.ceil(chauffeurs.length / itemsPerPage);
+            const paginationDiv = document.getElementById("pagination");
+
+            if (totalPages <= 1) {
+                paginationDiv.innerHTML = "";
+                return;
+            }
+
+            paginationDiv.innerHTML = `
+        <button onclick="changerPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>Précédent</button>
+        Page ${currentPage} / ${totalPages}
+        <button onclick="changerPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Suivant</button>
+      `;
+        }
+
+        function changerPage(page) {
+            const totalPages = Math.ceil(chauffeurs.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            afficherChauffeurs();
+        }
+
+        function modifierChauffeur(index) {
+            const chauffeur = chauffeurs[index];
+            const nouveauPrenom = prompt("Nouveau prénom :", chauffeur.prenom);
+            const nouveauNom = prompt("Nouveau nom :", chauffeur.nom);
+            if (nouveauPrenom && nouveauNom) {
+                chauffeurs[index].prenom = nouveauPrenom.trim();
+                chauffeurs[index].nom = nouveauNom.trim();
+                afficherChauffeurs();
+            }
+        }
+
+        function supprimerChauffeur(index) {
+            if (confirm("Voulez-vous vraiment supprimer ce chauffeur ?")) {
+                chauffeurs.splice(index, 1);
+                if ((currentPage - 1) * itemsPerPage >= chauffeurs.length) {
+                    currentPage = Math.max(1, currentPage - 1);
+                }
+                afficherChauffeurs();
+            }
+        }
+
+        document.getElementById("registerForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const prenom = document.getElementById("prenom").value.trim();
+            const nom = document.getElementById("nom").value.trim();
+
+            if (prenom === "" || nom === "") return;
+
+            const id = generateUniqueId();
+            chauffeurs.push({ prenom, nom, id, statut: "chauffeur" });
+
+            document.getElementById("result").style.display = "block";
+            document.getElementById("result").innerHTML = `
+        <strong>Chauffeur enregistré avec succès !</strong><br>
+        <strong>Nom :</strong> ${nom}<br>
+        <strong>Prénom :</strong> ${prenom}<br>
+        <strong>Statut :</strong> chauffeur<br>
+        <strong>Identifiant de connexion :</strong> <code>${id}</code>
+      `;
+
+            document.getElementById("registerForm").reset();
+            currentPage = Math.ceil(chauffeurs.length / itemsPerPage); // aller à la dernière page
+            afficherChauffeurs();
+        });
+    </script>
+
+</body>
+
+</html>

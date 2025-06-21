@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analyse des Journées</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    canvas {
+      margin-bottom: 30px;
+    }
+
+    .charts-container {
+      display: none;
+      flex-direction: column;
+    }
+
+    .legend {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Performance quotidienne</h2>
+  <canvas id="journeesChart"></canvas>
+
+  <div class="charts-container" id="detailsContainer">
+    <h3>Détails de la journée : <span id="jourTitle"></span></h3>
+    <canvas id="tempsUtilisationChart"></canvas>
+    <canvas id="dureeCoursesChart"></canvas>
+    <canvas id="distributionHorairesChart"></canvas>
+  </div>
+
+  <script>
+    // Configuration de l'utilisateur
+    const userDefinedTargetHours = 8 * 3600; // 8 heures en secondes
+
+    // Exemple de données simulées
+    const journees = [
+      {
+        date: "18/06/2025",
+        heure_debut: "18/06/2025 07:44:35",
+        heure_fin: "18/06/2025 19:44:35",
+        arrets: [
+          { heure_debut: "18/06/2025 05:44:37", heure_fin: "18/06/2025 06:44:41" },
+          { heure_debut: "18/06/2025 06:00:00", heure_fin: "18/06/2025 07:15:00" }
+        ],
+        courses: [
+          { id: 1, heure_depart: "18/06/2025 06:00:00", heure_arrivee: "18/06/2025 06:50:00", montant: "1500" },
+          { id: 2, heure_depart: "18/06/2025 07:30:00", heure_arrivee: "18/06/2025 08:35:00", montant: "1000" },
+          { id: 3, heure_depart: "18/06/2025 09:00:00", heure_arrivee: "18/06/2025 09:55:00", montant: "2000" }
+        ]
+      }
+    ];
+
+    // Fonction utilitaire pour parser une date
+    const parseDate = (str) => new Date(str.replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$2/$1/$3"));
+
+    // Calcul des données principales
+    const labels = [];
+    const totalDurations = [];
+    const pauseDurations = [];
+    const colors = [];
+
+    journees.forEach(jour => {
+      const start = parseDate(jour.heure_debut);
+      const end = parseDate(jour.heure_fin);
+      const total = (end - start) / 1000;
+      const pauses = jour.arrets.reduce((acc, a) => acc + (parseDate(a.heure_fin) - parseDate(a.heure_debut)) / 1000, 0);
+      const actif = total - pauses;
+
+      const score = Math.min((actif / userDefinedTargetHours) * 100, 100);
+      const hue = 220 - (score * 2.2); // 220 (bleu) à 0 (rouge)
+      const color = `hsl(${hue}, 70%, 50%)`;
+
+      labels.push(jour.date);
+      totalDurations.push(total / 3600);
+      pauseDurations.push(pauses / 3600);
+      colors.push(color);
+    });
+
+    const ctx = document.getElementById("journeesChart").getContext("2d");
+    const journeesChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Temps total",
+            data: totalDurations,
+            backgroundColor: colors,
+          },
+          {
+            label: "Temps de pause",
+            data: pauseDurations,
+            backgroundColor: "rgba(255, 99, 132, 0.7)",
+          }
+        ]
+      },
+      options: {
+        onClick: (e, elements) => {
+          if (elements.length > 0) {
+            const index = elements[0].index;
+            afficherDetails(journees[index]);
+          }
+        },
+        responsive: true,
+        scales: {
+          y: {
+            title: {
+              display: true,
+              text: "Heures"
+            }
+          }
+        }
+      }
+    });
+
+    function afficherDetails(jour) {
+      document.getElementById("jourTitle").textContent = jour.date;
+      document.getElementById("detailsContainer").style.display = "flex";
+
+      // Graphique 1 : temps courses vs temps actifs sans courses
+      const start = parseDate(jour.heure_debut);
+      const end = parseDate(jour.heure_fin);
+      const total = (end - start) / 1000;
+      const pauses = jour.arrets.reduce((acc, a) => acc + (parseDate(a.heure_fin) - parseDate(a.heure_debut)) / 1000, 0);
+      const actif = total - pauses;
+      const tempsCourses = jour.courses.reduce((acc, c) => acc + (parseDate(c.heure_arrivee) - parseDate(c.heure_depart)) / 1000, 0);
+
+      const ctx1 = document.getElementById("tempsUtilisationChart").getContext("2d");
+      new Chart(ctx1, {
+        type: "bar",
+        data: {
+          labels: ["Temps de courses", "Temps actif sans courses"],
+          datasets: [{
+            label: "Secondes",
+            data: [tempsCourses, actif - tempsCourses],
+            backgroundColor: ["#4caf50", "#ff9800"]
+          }]
+        },
+        options: { responsive: true }
+      });
+
+      // Graphique 2 : durée de chaque course
+      const ctx2 = document.getElementById("dureeCoursesChart").getContext("2d");
+      new Chart(ctx2, {
+        type: "bar",
+        data: {
+          labels: jour.courses.map(c => `Course ${c.id}`),
+          datasets: [{
+            label: "Durée (min)",
+            data: jour.courses.map(c => (parseDate(c.heure_arrivee) - parseDate(c.heure_depart)) / 60000),
+            backgroundColor: "#2196f3"
+          }]
+        },
+        options: { responsive: true }
+      });
+
+      // Graphique 3 : distribution des courses par tranches de 2h
+      const blocs = new Array(12).fill(0);
+      jour.courses.forEach(c => {
+        const h = parseDate(c.heure_depart).getHours();
+        const index = Math.floor(h / 2);
+        blocs[index]++;
+      });
+      const ctx3 = document.getElementById("distributionHorairesChart").getContext("2d");
+      new Chart(ctx3, {
+        type: "bar",
+        data: {
+          labels: Array.from({ length: 12 }, (_, i) => `${i * 2}h-${i * 2 + 2}h`),
+          datasets: [{
+            label: "Nb courses",
+            data: blocs,
+            backgroundColor: "#673ab7"
+          }]
+        },
+        options: { responsive: true }
+      });
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analyse des Journées</title>
+    <link rel="stylesheet" href="admin.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        canvas {
+            margin-bottom: 30px;
+        }
+
+        .charts-container {
+            display: none;
+            flex-direction: column;
+        }
+
+        .legend {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Performance quotidienne</h2>
+    <div class="controls">
+        <div>
+            <button id="prevWeekBtn">← Semaine précédente</button>
+            <button id="nextWeekBtn">Semaine suivante →</button>
+        </div>
+        <div>
+            <button id="toggleMonthViewBtn">Vue Mensuelle</button>
+        </div>
+    </div>
+
+    <canvas id="journeesChart"></canvas>
+
+    <div class="chart-wrapper">
+        <div class="canvas-container">
+            <canvas id="recettesChart"></canvas>
+        </div>
+
+        <div class="legend">
+            <strong>Légende recette:</strong>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(0, 150, 0, 0.8);"></div>Objectif dépassé
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(180, 180, 0, 0.8);"></div>Objectif atteint (≥
+                75%)
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(220, 120, 0, 0.8);"></div>Objectif moyen (≥ 50%)
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: rgba(200, 0, 0, 0.8);"></div>Faible performance
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-container" id="detailsContainer">
+        <h3>Détails de la journée : <span id="jourTitle"></span></h3>
+        <div class="canvas-container"><canvas id="tempsUtilisationChart"></canvas></div>
+        <div class="canvas-container"><canvas id="dureeCoursesChart"></canvas></div>
+        <div class="canvas-container"><canvas id="distributionHorairesChart"></canvas></div>
+    </div>
+
+
+    <script>
+
+        const journeesJanvier = [
+            {
+                date: "02/01/2025",
+                heure_debut: "02/01/2025 07:45:00",
+                heure_fin: "02/01/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "02/01/2025 09:30:00", heure_fin: "02/01/2025 09:45:00" },
+                    { heure_debut: "02/01/2025 12:00:00", heure_fin: "02/01/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "02/01/2025 07:45:00", heure_arrivee: "02/01/2025 08:30:00", montant: 1250 },
+                    { id: 2, heure_depart: "02/01/2025 08:45:00", heure_arrivee: "02/01/2025 09:25:00", montant: 1100 },
+                    { id: 3, heure_depart: "02/01/2025 09:45:15", heure_arrivee: "02/01/2025 10:30:00", montant: 1150 },
+                    { id: 4, heure_depart: "02/01/2025 10:45:00", heure_arrivee: "02/01/2025 11:30:00", montant: 1050 },
+                    { id: 5, heure_depart: "02/01/2025 12:30:15", heure_arrivee: "02/01/2025 13:15:00", montant: 1200 },
+                    { id: 6, heure_depart: "02/01/2025 13:30:00", heure_arrivee: "02/01/2025 14:10:00", montant: 950 }
+                ]
+            },
+            {
+                date: "03/01/2025",
+                heure_debut: "03/01/2025 08:00:00",
+                heure_fin: "03/01/2025 20:15:00",
+                arrets: [
+                    { heure_debut: "03/01/2025 10:15:00", heure_fin: "03/01/2025 10:30:00" },
+                    { heure_debut: "03/01/2025 13:00:00", heure_fin: "03/01/2025 13:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "03/01/2025 08:00:00", heure_arrivee: "03/01/2025 08:50:00", montant: 1300 },
+                    { id: 2, heure_depart: "03/01/2025 09:00:00", heure_arrivee: "03/01/2025 09:40:00", montant: 1050 },
+                    { id: 3, heure_depart: "03/01/2025 10:30:15", heure_arrivee: "03/01/2025 11:20:00", montant: 1250 },
+                    { id: 4, heure_depart: "03/01/2025 11:30:00", heure_arrivee: "03/01/2025 12:15:00", montant: 1150 },
+                    { id: 5, heure_depart: "03/01/2025 13:30:15", heure_arrivee: "03/01/2025 14:20:00", montant: 1350 }
+                ]
+            },
+            {
+                date: "04/01/2025",
+                heure_debut: "04/01/2025 07:30:00",
+                heure_fin: "04/01/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "04/01/2025 09:45:00", heure_fin: "04/01/2025 10:00:00" },
+                    { heure_debut: "04/01/2025 12:15:00", heure_fin: "04/01/2025 12:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "04/01/2025 07:30:00", heure_arrivee: "04/01/2025 08:15:00", montant: 1200 },
+                    { id: 2, heure_depart: "04/01/2025 08:30:00", heure_arrivee: "04/01/2025 09:10:00", montant: 1000 },
+                    { id: 3, heure_depart: "04/01/2025 10:00:15", heure_arrivee: "04/01/2025 10:45:00", montant: 1150 },
+                    { id: 4, heure_depart: "04/01/2025 11:00:00", heure_arrivee: "04/01/2025 11:50:00", montant: 1300 },
+                    { id: 5, heure_depart: "04/01/2025 12:45:15", heure_arrivee: "04/01/2025 13:30:00", montant: 1100 },
+                    { id: 6, heure_depart: "04/01/2025 13:45:00", heure_arrivee: "04/01/2025 14:25:00", montant: 950 }
+                ]
+            },
+            {
+                date: "05/01/2025",
+                heure_debut: "05/01/2025 08:15:00",
+                heure_fin: "05/01/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "05/01/2025 10:30:00", heure_fin: "05/01/2025 10:45:00" },
+                    { heure_debut: "05/01/2025 13:15:00", heure_fin: "05/01/2025 13:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "05/01/2025 08:15:00", heure_arrivee: "05/01/2025 09:00:00", montant: 1150 },
+                    { id: 2, heure_depart: "05/01/2025 09:15:00", heure_arrivee: "05/01/2025 09:55:00", montant: 1050 },
+                    { id: 3, heure_depart: "05/01/2025 10:45:15", heure_arrivee: "05/01/2025 11:30:00", montant: 1200 },
+                    { id: 4, heure_depart: "05/01/2025 11:45:00", heure_arrivee: "05/01/2025 12:30:00", montant: 1250 },
+                    { id: 5, heure_depart: "05/01/2025 13:45:15", heure_arrivee: "05/01/2025 14:30:00", montant: 1150 }
+                ]
+            },
+            {
+                date: "06/01/2025",
+                heure_debut: "06/01/2025 07:45:00",
+                heure_fin: "06/01/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "06/01/2025 09:15:00", heure_fin: "06/01/2025 09:30:00" },
+                    { heure_debut: "06/01/2025 12:00:00", heure_fin: "06/01/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "06/01/2025 07:45:00", heure_arrivee: "06/01/2025 08:30:00", montant: 1200 },
+                    { id: 2, heure_depart: "06/01/2025 08:45:00", heure_arrivee: "06/01/2025 09:10:00", montant: 850 },
+                    { id: 3, heure_depart: "06/01/2025 09:30:15", heure_arrivee: "06/01/2025 10:15:00", montant: 1150 },
+                    { id: 4, heure_depart: "06/01/2025 10:30:00", heure_arrivee: "06/01/2025 11:15:00", montant: 1250 },
+                    { id: 5, heure_depart: "06/01/2025 12:30:15", heure_arrivee: "06/01/2025 13:15:00", montant: 1100 },
+                    { id: 6, heure_depart: "06/01/2025 13:30:00", heure_arrivee: "06/01/2025 14:10:00", montant: 950 }
+                ]
+            },
+            // [...] (Jours 7 à 10 suivant le même format)
+            {
+                date: "07/01/2025",
+                heure_debut: "07/01/2025 08:00:00",
+                heure_fin: "07/01/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "07/01/2025 10:00:00", heure_fin: "07/01/2025 10:15:00" },
+                    { heure_debut: "07/01/2025 12:45:00", heure_fin: "07/01/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "07/01/2025 08:00:00", heure_arrivee: "07/01/2025 08:45:00", montant: 1200 },
+                    { id: 2, heure_depart: "07/01/2025 09:00:00", heure_arrivee: "07/01/2025 09:40:00", montant: 1050 },
+                    { id: 3, heure_depart: "07/01/2025 10:15:15", heure_arrivee: "07/01/2025 11:00:00", montant: 1150 }
+                ]
+            },
+            {
+                date: "08/01/2025",
+                heure_debut: "08/01/2025 07:30:00",
+                heure_fin: "08/01/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "08/01/2025 09:45:00", heure_fin: "08/01/2025 10:00:00" },
+                    { heure_debut: "08/01/2025 12:30:00", heure_fin: "08/01/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "08/01/2025 07:30:00", heure_arrivee: "08/01/2025 08:15:00", montant: 1250 },
+                    { id: 2, heure_depart: "08/01/2025 08:30:00", heure_arrivee: "08/01/2025 09:10:00", montant: 1100 },
+                    { id: 3, heure_depart: "08/01/2025 10:00:15", heure_arrivee: "08/01/2025 10:45:00", montant: 1200 }
+                ]
+            },
+            {
+                date: "09/01/2025",
+                heure_debut: "09/01/2025 08:15:00",
+                heure_fin: "09/01/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "09/01/2025 10:30:00", heure_fin: "09/01/2025 10:45:00" },
+                    { heure_debut: "09/01/2025 13:00:00", heure_fin: "09/01/2025 13:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "09/01/2025 08:15:00", heure_arrivee: "09/01/2025 09:00:00", montant: 1150 },
+                    { id: 2, heure_depart: "09/01/2025 09:15:00", heure_arrivee: "09/01/2025 09:55:00", montant: 1050 },
+                    { id: 3, heure_depart: "09/01/2025 10:45:15", heure_arrivee: "09/01/2025 11:30:00", montant: 1200 }
+                ]
+            },
+            {
+                date: "10/01/2025",
+                heure_debut: "10/01/2025 07:45:00",
+                heure_fin: "10/01/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "10/01/2025 09:15:00", heure_fin: "10/01/2025 09:30:00" },
+                    { heure_debut: "10/01/2025 12:15:00", heure_fin: "10/01/2025 12:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "10/01/2025 07:45:00", heure_arrivee: "10/01/2025 08:30:00", montant: 1200 },
+                    { id: 2, heure_depart: "10/01/2025 08:45:00", heure_arrivee: "10/01/2025 09:25:00", montant: 1100 },
+                    { id: 3, heure_depart: "10/01/2025 09:30:15", heure_arrivee: "10/01/2025 10:15:00", montant: 1150 }
+                ]
+            },
+            {
+                date: "11/01/2025",
+                heure_debut: "11/01/2025 08:00:00",
+                heure_fin: "11/01/2025 20:15:00",
+                arrets: [
+                    { heure_debut: "11/01/2025 10:00:00", heure_fin: "11/01/2025 10:15:00" },
+                    { heure_debut: "11/01/2025 12:45:00", heure_fin: "11/01/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "11/01/2025 08:00:00", heure_arrivee: "11/01/2025 08:45:00", montant: 1250 },
+                    { id: 2, heure_depart: "11/01/2025 09:00:00", heure_arrivee: "11/01/2025 09:40:00", montant: 1100 },
+                    { id: 3, heure_depart: "11/01/2025 10:15:15", heure_arrivee: "11/01/2025 11:00:00", montant: 1200 }
+                ]
+            }
+        ];
+
+        const journeesFevrier = [
+            {
+                date: "03/02/2025",
+                heure_debut: "03/02/2025 08:00:00",
+                heure_fin: "03/02/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "03/02/2025 10:15:00", heure_fin: "03/02/2025 10:30:00" },
+                    { heure_debut: "03/02/2025 12:45:00", heure_fin: "03/02/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "03/02/2025 08:00:00", heure_arrivee: "03/02/2025 08:50:00", montant: 1300 },
+                    { id: 2, heure_depart: "03/02/2025 09:00:00", heure_arrivee: "03/02/2025 09:45:00", montant: 1150 },
+                    { id: 3, heure_depart: "03/02/2025 10:30:15", heure_arrivee: "03/02/2025 11:20:00", montant: 1250 },
+                    { id: 4, heure_depart: "03/02/2025 11:30:00", heure_arrivee: "03/02/2025 12:15:00", montant: 1200 },
+                    { id: 5, heure_depart: "03/02/2025 13:15:15", heure_arrivee: "03/02/2025 14:00:00", montant: 1100 }
+                ]
+            },
+            {
+                date: "04/02/2025",
+                heure_debut: "04/02/2025 07:45:00",
+                heure_fin: "04/02/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "04/02/2025 09:30:00", heure_fin: "04/02/2025 09:45:00" },
+                    { heure_debut: "04/02/2025 12:30:00", heure_fin: "04/02/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "04/02/2025 07:45:00", heure_arrivee: "04/02/2025 08:35:00", montant: 1250 },
+                    { id: 2, heure_depart: "04/02/2025 08:45:00", heure_arrivee: "04/02/2025 09:30:00", montant: 1150 },
+                    { id: 3, heure_depart: "04/02/2025 09:45:15", heure_arrivee: "04/02/2025 10:30:00", montant: 1200 },
+                    { id: 4, heure_depart: "04/02/2025 10:45:00", heure_arrivee: "04/02/2025 11:30:00", montant: 1100 },
+                    { id: 5, heure_depart: "04/02/2025 13:00:15", heure_arrivee: "04/02/2025 13:45:00", montant: 1050 }
+                ]
+            },
+            {
+                date: "05/02/2025",
+                heure_debut: "05/02/2025 08:15:00",
+                heure_fin: "05/02/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "05/02/2025 10:00:00", heure_fin: "05/02/2025 10:15:00" },
+                    { heure_debut: "05/02/2025 13:15:00", heure_fin: "05/02/2025 13:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "05/02/2025 08:15:00", heure_arrivee: "05/02/2025 09:00:00", montant: 1200 },
+                    { id: 2, heure_depart: "05/02/2025 09:15:00", heure_arrivee: "05/02/2025 09:55:00", montant: 1100 },
+                    { id: 3, heure_depart: "05/02/2025 10:15:15", heure_arrivee: "05/02/2025 11:00:00", montant: 1150 },
+                    { id: 4, heure_depart: "05/02/2025 11:15:00", heure_arrivee: "05/02/2025 12:00:00", montant: 1250 },
+                    { id: 5, heure_depart: "05/02/2025 13:45:15", heure_arrivee: "05/02/2025 14:30:00", montant: 1050 }
+                ]
+            },
+            {
+                date: "06/02/2025",
+                heure_debut: "06/02/2025 07:30:00",
+                heure_fin: "06/02/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "06/02/2025 09:45:00", heure_fin: "06/02/2025 10:00:00" },
+                    { heure_debut: "06/02/2025 12:00:00", heure_fin: "06/02/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "06/02/2025 07:30:00", heure_arrivee: "06/02/2025 08:15:00", montant: 1300 },
+                    { id: 2, heure_depart: "06/02/2025 08:30:00", heure_arrivee: "06/02/2025 09:10:00", montant: 1150 },
+                    { id: 3, heure_depart: "06/02/2025 10:00:15", heure_arrivee: "06/02/2025 10:45:00", montant: 1200 },
+                    { id: 4, heure_depart: "06/02/2025 11:00:00", heure_arrivee: "06/02/2025 11:45:00", montant: 1250 },
+                    { id: 5, heure_depart: "06/02/2025 12:30:15", heure_arrivee: "06/02/2025 13:15:00", montant: 1100 }
+                ]
+            },
+            {
+                date: "07/02/2025",
+                heure_debut: "07/02/2025 08:00:00",
+                heure_fin: "07/02/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "07/02/2025 10:30:00", heure_fin: "07/02/2025 10:45:00" },
+                    { heure_debut: "07/02/2025 12:45:00", heure_fin: "07/02/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "07/02/2025 08:00:00", heure_arrivee: "07/02/2025 08:45:00", montant: 1200 },
+                    { id: 2, heure_depart: "07/02/2025 09:00:00", heure_arrivee: "07/02/2025 09:40:00", montant: 1100 },
+                    { id: 3, heure_depart: "07/02/2025 10:45:15", heure_arrivee: "07/02/2025 11:30:00", montant: 1150 },
+                    { id: 4, heure_depart: "07/02/2025 11:45:00", heure_arrivee: "07/02/2025 12:30:00", montant: 1250 },
+                    { id: 5, heure_depart: "07/02/2025 13:15:15", heure_arrivee: "07/02/2025 14:00:00", montant: 1050 }
+                ]
+            },
+            {
+                date: "10/02/2025", // Lundi suivant (après le weekend)
+                heure_debut: "10/02/2025 07:45:00",
+                heure_fin: "10/02/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "10/02/2025 09:15:00", heure_fin: "10/02/2025 09:30:00" },
+                    { heure_debut: "10/02/2025 12:15:00", heure_fin: "10/02/2025 12:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "10/02/2025 07:45:00", heure_arrivee: "10/02/2025 08:30:00", montant: 1250 },
+                    { id: 2, heure_depart: "10/02/2025 08:45:00", heure_arrivee: "10/02/2025 09:25:00", montant: 1150 },
+                    { id: 3, heure_depart: "10/02/2025 09:30:15", heure_arrivee: "10/02/2025 10:15:00", montant: 1200 },
+                    { id: 4, heure_depart: "10/02/2025 10:30:00", heure_arrivee: "10/02/2025 11:15:00", montant: 1300 },
+                    { id: 5, heure_depart: "10/02/2025 12:45:15", heure_arrivee: "10/02/2025 13:30:00", montant: 1100 }
+                ]
+            },
+            {
+                date: "11/02/2025",
+                heure_debut: "11/02/2025 08:15:00",
+                heure_fin: "11/02/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "11/02/2025 10:00:00", heure_fin: "11/02/2025 10:15:00" },
+                    { heure_debut: "11/02/2025 13:00:00", heure_fin: "11/02/2025 13:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "11/02/2025 08:15:00", heure_arrivee: "11/02/2025 09:00:00", montant: 1200 },
+                    { id: 2, heure_depart: "11/02/2025 09:15:00", heure_arrivee: "11/02/2025 09:55:00", montant: 1100 },
+                    { id: 3, heure_depart: "11/02/2025 10:15:15", heure_arrivee: "11/02/2025 11:00:00", montant: 1150 },
+                    { id: 4, heure_depart: "11/02/2025 11:15:00", heure_arrivee: "11/02/2025 12:00:00", montant: 1250 }
+                ]
+            },
+            {
+                date: "12/02/2025",
+                heure_debut: "12/02/2025 07:30:00",
+                heure_fin: "12/02/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "12/02/2025 09:45:00", heure_fin: "12/02/2025 10:00:00" },
+                    { heure_debut: "12/02/2025 12:30:00", heure_fin: "12/02/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "12/02/2025 07:30:00", heure_arrivee: "12/02/2025 08:15:00", montant: 1300 },
+                    { id: 2, heure_depart: "12/02/2025 08:30:00", heure_arrivee: "12/02/2025 09:10:00", montant: 1150 },
+                    { id: 3, heure_depart: "12/02/2025 10:00:15", heure_arrivee: "12/02/2025 10:45:00", montant: 1200 },
+                    { id: 4, heure_depart: "12/02/2025 11:00:00", heure_arrivee: "12/02/2025 11:45:00", montant: 1250 }
+                ]
+            },
+            {
+                date: "13/02/2025",
+                heure_debut: "13/02/2025 08:00:00",
+                heure_fin: "13/02/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "13/02/2025 10:15:00", heure_fin: "13/02/2025 10:30:00" },
+                    { heure_debut: "13/02/2025 12:45:00", heure_fin: "13/02/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "13/02/2025 08:00:00", heure_arrivee: "13/02/2025 08:45:00", montant: 1200 },
+                    { id: 2, heure_depart: "13/02/2025 09:00:00", heure_arrivee: "13/02/2025 09:40:00", montant: 1100 },
+                    { id: 3, heure_depart: "13/02/2025 10:30:15", heure_arrivee: "13/02/2025 11:15:00", montant: 1150 },
+                    { id: 4, heure_depart: "13/02/2025 11:30:00", heure_arrivee: "13/02/2025 12:15:00", montant: 1250 }
+                ]
+            },
+            {
+                date: "14/02/2025",
+                heure_debut: "14/02/2025 07:45:00",
+                heure_fin: "14/02/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "14/02/2025 09:30:00", heure_fin: "14/02/2025 09:45:00" },
+                    { heure_debut: "14/02/2025 12:00:00", heure_fin: "14/02/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "14/02/2025 07:45:00", heure_arrivee: "14/02/2025 08:30:00", montant: 1250 },
+                    { id: 2, heure_depart: "14/02/2025 08:45:00", heure_arrivee: "14/02/2025 09:25:00", montant: 1150 },
+                    { id: 3, heure_depart: "14/02/2025 09:45:15", heure_arrivee: "14/02/2025 10:30:00", montant: 1200 },
+                    { id: 4, heure_depart: "14/02/2025 10:45:00", heure_arrivee: "14/02/2025 11:30:00", montant: 1300 }
+                ]
+            }
+        ];
+        const journeesMars = [
+            {
+                date: "03/03/2025",
+                heure_debut: "03/03/2025 07:50:00",
+                heure_fin: "03/03/2025 19:40:00",
+                arrets: [
+                    { heure_debut: "03/03/2025 10:20:00", heure_fin: "03/03/2025 10:35:00" },
+                    { heure_debut: "03/03/2025 13:10:00", heure_fin: "03/03/2025 13:40:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "03/03/2025 07:50:00", heure_arrivee: "03/03/2025 08:35:00", montant: 1350 },
+                    { id: 2, heure_depart: "03/03/2025 08:50:00", heure_arrivee: "03/03/2025 09:35:00", montant: 1250 },
+                    { id: 3, heure_depart: "03/03/2025 09:50:00", heure_arrivee: "03/03/2025 10:15:00", montant: 950 },
+                    { id: 4, heure_depart: "03/03/2025 10:35:15", heure_arrivee: "03/03/2025 11:25:00", montant: 1300 },
+                    { id: 5, heure_depart: "03/03/2025 11:40:00", heure_arrivee: "03/03/2025 12:25:00", montant: 1400 }
+                ]
+            },
+            {
+                date: "04/03/2025",
+                heure_debut: "04/03/2025 08:05:00",
+                heure_fin: "04/03/2025 20:15:00",
+                arrets: [
+                    { heure_debut: "04/03/2025 11:15:00", heure_fin: "04/03/2025 11:30:00" },
+                    { heure_debut: "04/03/2025 14:00:00", heure_fin: "04/03/2025 14:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "04/03/2025 08:05:00", heure_arrivee: "04/03/2025 08:55:00", montant: 1400 },
+                    { id: 2, heure_depart: "04/03/2025 09:10:00", heure_arrivee: "04/03/2025 09:50:00", montant: 1200 },
+                    { id: 3, heure_depart: "04/03/2025 10:05:00", heure_arrivee: "04/03/2025 10:50:00", montant: 1350 },
+                    { id: 4, heure_depart: "04/03/2025 11:30:15", heure_arrivee: "04/03/2025 12:20:00", montant: 1450 }
+                ]
+            },
+            {
+                date: "05/03/2025",
+                heure_debut: "05/03/2025 07:40:00",
+                heure_fin: "05/03/2025 19:50:00",
+                arrets: [
+                    { heure_debut: "05/03/2025 09:45:00", heure_fin: "05/03/2025 10:00:00" },
+                    { heure_debut: "05/03/2025 12:50:00", heure_fin: "05/03/2025 13:20:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "05/03/2025 07:40:00", heure_arrivee: "05/03/2025 08:30:00", montant: 1450 },
+                    { id: 2, heure_depart: "05/03/2025 08:45:00", heure_arrivee: "05/03/2025 09:30:00", montant: 1300 },
+                    { id: 3, heure_depart: "05/03/2025 10:00:15", heure_arrivee: "05/03/2025 10:50:00", montant: 1400 },
+                    { id: 4, heure_depart: "05/03/2025 11:10:00", heure_arrivee: "05/03/2025 11:55:00", montant: 1350 }
+                ]
+            },
+            {
+                date: "06/03/2025",
+                heure_debut: "06/03/2025 08:15:00",
+                heure_fin: "06/03/2025 20:05:00",
+                arrets: [
+                    { heure_debut: "06/03/2025 10:40:00", heure_fin: "06/03/2025 10:55:00" },
+                    { heure_debut: "06/03/2025 13:30:00", heure_fin: "06/03/2025 14:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "06/03/2025 08:15:00", heure_arrivee: "06/03/2025 09:05:00", montant: 1350 },
+                    { id: 2, heure_depart: "06/03/2025 09:20:00", heure_arrivee: "06/03/2025 10:05:00", montant: 1400 },
+                    { id: 3, heure_depart: "06/03/2025 10:55:15", heure_arrivee: "06/03/2025 11:45:00", montant: 1450 },
+                    { id: 4, heure_depart: "06/03/2025 12:10:00", heure_arrivee: "06/03/2025 12:55:00", montant: 1300 }
+                ]
+            },
+            {
+                date: "07/03/2025",
+                heure_debut: "07/03/2025 07:55:00",
+                heure_fin: "07/03/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "07/03/2025 10:10:00", heure_fin: "07/03/2025 10:25:00" },
+                    { heure_debut: "07/03/2025 13:15:00", heure_fin: "07/03/2025 13:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "07/03/2025 07:55:00", heure_arrivee: "07/03/2025 08:45:00", montant: 1400 },
+                    { id: 2, heure_depart: "07/03/2025 09:00:00", heure_arrivee: "07/03/2025 09:45:00", montant: 1350 },
+                    { id: 3, heure_depart: "07/03/2025 10:25:15", heure_arrivee: "07/03/2025 11:15:00", montant: 1450 },
+                    { id: 4, heure_depart: "07/03/2025 11:30:00", heure_arrivee: "07/03/2025 12:15:00", montant: 1300 }
+                ]
+            },
+            {
+                date: "10/03/2025", // Lundi suivant
+                heure_debut: "10/03/2025 08:10:00",
+                heure_fin: "10/03/2025 20:20:00",
+                arrets: [
+                    { heure_debut: "10/03/2025 11:05:00", heure_fin: "10/03/2025 11:20:00" },
+                    { heure_debut: "10/03/2025 14:10:00", heure_fin: "10/03/2025 14:40:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "10/03/2025 08:10:00", heure_arrivee: "10/03/2025 09:00:00", montant: 1450 },
+                    { id: 2, heure_depart: "10/03/2025 09:15:00", heure_arrivee: "10/03/2025 10:00:00", montant: 1400 },
+                    { id: 3, heure_depart: "10/03/2025 10:20:15", heure_arrivee: "10/03/2025 11:10:00", montant: 1500 },
+                    { id: 4, heure_depart: "10/03/2025 11:30:00", heure_arrivee: "10/03/2025 12:20:00", montant: 1450 }
+                ]
+            },
+            {
+                date: "11/03/2025",
+                heure_debut: "11/03/2025 07:45:00",
+                heure_fin: "11/03/2025 19:55:00",
+                arrets: [
+                    { heure_debut: "11/03/2025 09:50:00", heure_fin: "11/03/2025 10:05:00" },
+                    { heure_debut: "11/03/2025 12:55:00", heure_fin: "11/03/2025 13:25:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "11/03/2025 07:45:00", heure_arrivee: "11/03/2025 08:35:00", montant: 1500 },
+                    { id: 2, heure_depart: "11/03/2025 08:45:00", heure_arrivee: "11/03/2025 09:30:00", montant: 1450 },
+                    { id: 3, heure_depart: "11/03/2025 10:05:15", heure_arrivee: "11/03/2025 10:55:00", montant: 1550 },
+                    { id: 4, heure_depart: "11/03/2025 11:15:00", heure_arrivee: "11/03/2025 12:00:00", montant: 1500 }
+                ]
+            },
+            {
+                date: "12/03/2025",
+                heure_debut: "12/03/2025 08:00:00",
+                heure_fin: "12/03/2025 20:10:00",
+                arrets: [
+                    { heure_debut: "12/03/2025 10:25:00", heure_fin: "12/03/2025 10:40:00" },
+                    { heure_debut: "12/03/2025 13:35:00", heure_fin: "12/03/2025 14:05:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "12/03/2025 08:00:00", heure_arrivee: "12/03/2025 08:50:00", montant: 1550 },
+                    { id: 2, heure_depart: "12/03/2025 09:05:00", heure_arrivee: "12/03/2025 09:50:00", montant: 1500 },
+                    { id: 3, heure_depart: "12/03/2025 10:40:15", heure_arrivee: "12/03/2025 11:30:00", montant: 1600 },
+                    { id: 4, heure_depart: "12/03/2025 11:45:00", heure_arrivee: "12/03/2025 12:30:00", montant: 1550 }
+                ]
+            },
+            {
+                date: "13/03/2025",
+                heure_debut: "13/03/2025 07:50:00",
+                heure_fin: "13/03/2025 19:40:00",
+                arrets: [
+                    { heure_debut: "13/03/2025 09:55:00", heure_fin: "13/03/2025 10:10:00" },
+                    { heure_debut: "13/03/2025 12:40:00", heure_fin: "13/03/2025 13:10:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "13/03/2025 07:50:00", heure_arrivee: "13/03/2025 08:40:00", montant: 1600 },
+                    { id: 2, heure_depart: "13/03/2025 08:55:00", heure_arrivee: "13/03/2025 09:40:00", montant: 1550 },
+                    { id: 3, heure_depart: "13/03/2025 10:10:15", heure_arrivee: "13/03/2025 11:00:00", montant: 1650 },
+                    { id: 4, heure_depart: "13/03/2025 11:20:00", heure_arrivee: "13/03/2025 12:05:00", montant: 1600 }
+                ]
+            },
+            {
+                date: "14/03/2025",
+                heure_debut: "14/03/2025 08:05:00",
+                heure_fin: "14/03/2025 19:50:00",
+                arrets: [
+                    { heure_debut: "14/03/2025 10:30:00", heure_fin: "14/03/2025 10:45:00" },
+                    { heure_debut: "14/03/2025 13:20:00", heure_fin: "14/03/2025 13:50:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "14/03/2025 08:05:00", heure_arrivee: "14/03/2025 08:55:00", montant: 1650 },
+                    { id: 2, heure_depart: "14/03/2025 09:10:00", heure_arrivee: "14/03/2025 09:55:00", montant: 1600 },
+                    { id: 3, heure_depart: "14/03/2025 10:45:15", heure_arrivee: "14/03/2025 11:35:00", montant: 1700 },
+                    { id: 4, heure_depart: "14/03/2025 11:50:00", heure_arrivee: "14/03/2025 12:35:00", montant: 1650 }
+                ]
+            }
+        ];
+        const journeesAvril = [
+            {
+                date: "01/04/2025",
+                heure_debut: "01/04/2025 08:00:00",
+                heure_fin: "01/04/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "01/04/2025 10:15:00", heure_fin: "01/04/2025 10:30:00" },
+                    { heure_debut: "01/04/2025 12:45:00", heure_fin: "01/04/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "01/04/2025 08:00:00", heure_arrivee: "01/04/2025 08:45:00", montant: 1250 },
+                    { id: 2, heure_depart: "01/04/2025 09:00:00", heure_arrivee: "01/04/2025 09:40:00", montant: 1150 },
+                    { id: 3, heure_depart: "01/04/2025 10:30:15", heure_arrivee: "01/04/2025 11:15:00", montant: 1300 },
+                    { id: 4, heure_depart: "01/04/2025 11:30:00", heure_arrivee: "01/04/2025 12:15:00", montant: 1200 },
+                    { id: 5, heure_depart: "01/04/2025 13:15:15", heure_arrivee: "01/04/2025 14:00:00", montant: 1100 }
+                ]
+            },
+            {
+                date: "02/04/2025",
+                heure_debut: "02/04/2025 07:45:00",
+                heure_fin: "02/04/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "02/04/2025 09:30:00", heure_fin: "02/04/2025 09:45:00" },
+                    { heure_debut: "02/04/2025 12:30:00", heure_fin: "02/04/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "02/04/2025 07:45:00", heure_arrivee: "02/04/2025 08:30:00", montant: 1200 },
+                    { id: 2, heure_depart: "02/04/2025 08:45:00", heure_arrivee: "02/04/2025 09:25:00", montant: 1100 },
+                    { id: 3, heure_depart: "02/04/2025 09:45:15", heure_arrivee: "02/04/2025 10:30:00", montant: 1250 },
+                    { id: 4, heure_depart: "02/04/2025 10:45:00", heure_arrivee: "02/04/2025 11:30:00", montant: 1150 }
+                ]
+            },
+            {
+                date: "03/04/2025",
+                heure_debut: "03/04/2025 08:15:00",
+                heure_fin: "03/04/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "03/04/2025 10:00:00", heure_fin: "03/04/2025 10:15:00" },
+                    { heure_debut: "03/04/2025 13:15:00", heure_fin: "03/04/2025 13:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "03/04/2025 08:15:00", heure_arrivee: "03/04/2025 09:00:00", montant: 1150 },
+                    { id: 2, heure_depart: "03/04/2025 09:15:00", heure_arrivee: "03/04/2025 09:55:00", montant: 1050 },
+                    { id: 3, heure_depart: "03/04/2025 10:15:15", heure_arrivee: "03/04/2025 11:00:00", montant: 1200 },
+                    { id: 4, heure_depart: "03/04/2025 11:15:00", heure_arrivee: "03/04/2025 12:00:00", montant: 1250 }
+                ]
+            },
+            {
+                date: "04/04/2025",
+                heure_debut: "04/04/2025 07:30:00",
+                heure_fin: "04/04/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "04/04/2025 09:45:00", heure_fin: "04/04/2025 10:00:00" },
+                    { heure_debut: "04/04/2025 12:00:00", heure_fin: "04/04/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "04/04/2025 07:30:00", heure_arrivee: "04/04/2025 08:15:00", montant: 1300 },
+                    { id: 2, heure_depart: "04/04/2025 08:30:00", heure_arrivee: "04/04/2025 09:10:00", montant: 1150 },
+                    { id: 3, heure_depart: "04/04/2025 10:00:15", heure_arrivee: "04/04/2025 10:45:00", montant: 1200 },
+                    { id: 4, heure_depart: "04/04/2025 11:00:00", heure_arrivee: "04/04/2025 11:45:00", montant: 1250 }
+                ]
+            },
+            {
+                date: "07/04/2025", // Lundi suivant
+                heure_debut: "07/04/2025 08:00:00",
+                heure_fin: "07/04/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "07/04/2025 10:15:00", heure_fin: "07/04/2025 10:30:00" },
+                    { heure_debut: "07/04/2025 12:45:00", heure_fin: "07/04/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "07/04/2025 08:00:00", heure_arrivee: "07/04/2025 08:45:00", montant: 1250 },
+                    { id: 2, heure_depart: "07/04/2025 09:00:00", heure_arrivee: "07/04/2025 09:40:00", montant: 1150 },
+                    { id: 3, heure_depart: "07/04/2025 10:30:15", heure_arrivee: "07/04/2025 11:15:00", montant: 1300 },
+                    { id: 4, heure_depart: "07/04/2025 11:30:00", heure_arrivee: "07/04/2025 12:15:00", montant: 1200 }
+                ]
+            },
+            {
+                date: "08/04/2025",
+                heure_debut: "08/04/2025 07:45:00",
+                heure_fin: "08/04/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "08/04/2025 09:30:00", heure_fin: "08/04/2025 09:45:00" },
+                    { heure_debut: "08/04/2025 12:30:00", heure_fin: "08/04/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "08/04/2025 07:45:00", heure_arrivee: "08/04/2025 08:30:00", montant: 1200 },
+                    { id: 2, heure_depart: "08/04/2025 08:45:00", heure_arrivee: "08/04/2025 09:25:00", montant: 1100 },
+                    { id: 3, heure_depart: "08/04/2025 09:45:15", heure_arrivee: "08/04/2025 10:30:00", montant: 1250 },
+                    { id: 4, heure_depart: "08/04/2025 10:45:00", heure_arrivee: "08/04/2025 11:30:00", montant: 1150 }
+                ]
+            },
+            {
+                date: "09/04/2025",
+                heure_debut: "09/04/2025 08:15:00",
+                heure_fin: "09/04/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "09/04/2025 10:00:00", heure_fin: "09/04/2025 10:15:00" },
+                    { heure_debut: "09/04/2025 13:15:00", heure_fin: "09/04/2025 13:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "09/04/2025 08:15:00", heure_arrivee: "09/04/2025 09:00:00", montant: 1150 },
+                    { id: 2, heure_depart: "09/04/2025 09:15:00", heure_arrivee: "09/04/2025 09:55:00", montant: 1050 },
+                    { id: 3, heure_depart: "09/04/2025 10:15:15", heure_arrivee: "09/04/2025 11:00:00", montant: 1200 },
+                    { id: 4, heure_depart: "09/04/2025 11:15:00", heure_arrivee: "09/04/2025 12:00:00", montant: 1250 }
+                ]
+            },
+            {
+                date: "10/04/2025",
+                heure_debut: "10/04/2025 07:30:00",
+                heure_fin: "10/04/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "10/04/2025 09:45:00", heure_fin: "10/04/2025 10:00:00" },
+                    { heure_debut: "10/04/2025 12:00:00", heure_fin: "10/04/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "10/04/2025 07:30:00", heure_arrivee: "10/04/2025 08:15:00", montant: 1300 },
+                    { id: 2, heure_depart: "10/04/2025 08:30:00", heure_arrivee: "10/04/2025 09:10:00", montant: 1150 },
+                    { id: 3, heure_depart: "10/04/2025 10:00:15", heure_arrivee: "10/04/2025 10:45:00", montant: 1200 },
+                    { id: 4, heure_depart: "10/04/2025 11:00:00", heure_arrivee: "10/04/2025 11:45:00", montant: 1250 }
+                ]
+            },
+            {
+                date: "11/04/2025",
+                heure_debut: "11/04/2025 08:00:00",
+                heure_fin: "11/04/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "11/04/2025 10:15:00", heure_fin: "11/04/2025 10:30:00" },
+                    { heure_debut: "11/04/2025 12:45:00", heure_fin: "11/04/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "11/04/2025 08:00:00", heure_arrivee: "11/04/2025 08:45:00", montant: 1250 },
+                    { id: 2, heure_depart: "11/04/2025 09:00:00", heure_arrivee: "11/04/2025 09:40:00", montant: 1150 },
+                    { id: 3, heure_depart: "11/04/2025 10:30:15", heure_arrivee: "11/04/2025 11:15:00", montant: 1300 },
+                    { id: 4, heure_depart: "11/04/2025 11:30:00", heure_arrivee: "11/04/2025 12:15:00", montant: 1200 }
+                ]
+            },
+            {
+                date: "14/04/2025", // Lundi suivant
+                heure_debut: "14/04/2025 07:45:00",
+                heure_fin: "14/04/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "14/04/2025 09:30:00", heure_fin: "14/04/2025 09:45:00" },
+                    { heure_debut: "14/04/2025 12:30:00", heure_fin: "14/04/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "14/04/2025 07:45:00", heure_arrivee: "14/04/2025 08:30:00", montant: 1200 },
+                    { id: 2, heure_depart: "14/04/2025 08:45:00", heure_arrivee: "14/04/2025 09:25:00", montant: 1100 },
+                    { id: 3, heure_depart: "14/04/2025 09:45:15", heure_arrivee: "14/04/2025 10:30:00", montant: 1250 },
+                    { id: 4, heure_depart: "14/04/2025 10:45:00", heure_arrivee: "14/04/2025 11:30:00", montant: 1150 }
+                ]
+            }
+        ];
+        const journeesMai = [
+            {
+                date: "05/05/2025",
+                heure_debut: "05/05/2025 08:00:00",
+                heure_fin: "05/05/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "05/05/2025 10:15:00", heure_fin: "05/05/2025 10:30:00" },
+                    { heure_debut: "05/05/2025 12:45:00", heure_fin: "05/05/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "05/05/2025 08:00:00", heure_arrivee: "05/05/2025 08:45:00", montant: 1300 },
+                    { id: 2, heure_depart: "05/05/2025 09:00:00", heure_arrivee: "05/05/2025 09:40:00", montant: 1200 },
+                    { id: 3, heure_depart: "05/05/2025 10:30:15", heure_arrivee: "05/05/2025 11:15:00", montant: 1350 },
+                    { id: 4, heure_depart: "05/05/2025 11:30:00", heure_arrivee: "05/05/2025 12:15:00", montant: 1250 },
+                    { id: 5, heure_depart: "05/05/2025 13:15:15", heure_arrivee: "05/05/2025 14:00:00", montant: 1150 }
+                ]
+            },
+            {
+                date: "06/05/2025",
+                heure_debut: "06/05/2025 07:45:00",
+                heure_fin: "06/05/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "06/05/2025 09:30:00", heure_fin: "06/05/2025 09:45:00" },
+                    { heure_debut: "06/05/2025 12:30:00", heure_fin: "06/05/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "06/05/2025 07:45:00", heure_arrivee: "06/05/2025 08:30:00", montant: 1350 },
+                    { id: 2, heure_depart: "06/05/2025 08:45:00", heure_arrivee: "06/05/2025 09:25:00", montant: 1250 },
+                    { id: 3, heure_depart: "06/05/2025 09:45:15", heure_arrivee: "06/05/2025 10:30:00", montant: 1400 },
+                    { id: 4, heure_depart: "06/05/2025 10:45:00", heure_arrivee: "06/05/2025 11:30:00", montant: 1300 }
+                ]
+            },
+            {
+                date: "07/05/2025",
+                heure_debut: "07/05/2025 08:15:00",
+                heure_fin: "07/05/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "07/05/2025 10:00:00", heure_fin: "07/05/2025 10:15:00" },
+                    { heure_debut: "07/05/2025 13:15:00", heure_fin: "07/05/2025 13:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "07/05/2025 08:15:00", heure_arrivee: "07/05/2025 09:00:00", montant: 1250 },
+                    { id: 2, heure_depart: "07/05/2025 09:15:00", heure_arrivee: "07/05/2025 09:55:00", montant: 1150 },
+                    { id: 3, heure_depart: "07/05/2025 10:15:15", heure_arrivee: "07/05/2025 11:00:00", montant: 1300 },
+                    { id: 4, heure_depart: "07/05/2025 11:15:00", heure_arrivee: "07/05/2025 12:00:00", montant: 1400 }
+                ]
+            },
+            {
+                date: "08/05/2025",
+                heure_debut: "08/05/2025 07:30:00",
+                heure_fin: "08/05/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "08/05/2025 09:45:00", heure_fin: "08/05/2025 10:00:00" },
+                    { heure_debut: "08/05/2025 12:00:00", heure_fin: "08/05/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "08/05/2025 07:30:00", heure_arrivee: "08/05/2025 08:15:00", montant: 1400 },
+                    { id: 2, heure_depart: "08/05/2025 08:30:00", heure_arrivee: "08/05/2025 09:10:00", montant: 1250 },
+                    { id: 3, heure_depart: "08/05/2025 10:00:15", heure_arrivee: "08/05/2025 10:45:00", montant: 1300 },
+                    { id: 4, heure_depart: "08/05/2025 11:00:00", heure_arrivee: "08/05/2025 11:45:00", montant: 1350 }
+                ]
+            },
+            {
+                date: "09/05/2025",
+                heure_debut: "09/05/2025 08:00:00",
+                heure_fin: "09/05/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "09/05/2025 10:15:00", heure_fin: "09/05/2025 10:30:00" },
+                    { heure_debut: "09/05/2025 12:45:00", heure_fin: "09/05/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "09/05/2025 08:00:00", heure_arrivee: "09/05/2025 08:45:00", montant: 1350 },
+                    { id: 2, heure_depart: "09/05/2025 09:00:00", heure_arrivee: "09/05/2025 09:40:00", montant: 1250 },
+                    { id: 3, heure_depart: "09/05/2025 10:30:15", heure_arrivee: "09/05/2025 11:15:00", montant: 1400 },
+                    { id: 4, heure_depart: "09/05/2025 11:30:00", heure_arrivee: "09/05/2025 12:15:00", montant: 1300 }
+                ]
+            },
+            {
+                date: "12/05/2025", // Lundi suivant
+                heure_debut: "12/05/2025 07:45:00",
+                heure_fin: "12/05/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "12/05/2025 09:30:00", heure_fin: "12/05/2025 09:45:00" },
+                    { heure_debut: "12/05/2025 12:30:00", heure_fin: "12/05/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "12/05/2025 07:45:00", heure_arrivee: "12/05/2025 08:30:00", montant: 1300 },
+                    { id: 2, heure_depart: "12/05/2025 08:45:00", heure_arrivee: "12/05/2025 09:25:00", montant: 1200 },
+                    { id: 3, heure_depart: "12/05/2025 09:45:15", heure_arrivee: "12/05/2025 10:30:00", montant: 1350 },
+                    { id: 4, heure_depart: "12/05/2025 10:45:00", heure_arrivee: "12/05/2025 11:30:00", montant: 1250 }
+                ]
+            },
+            {
+                date: "13/05/2025",
+                heure_debut: "13/05/2025 08:15:00",
+                heure_fin: "13/05/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "13/05/2025 10:00:00", heure_fin: "13/05/2025 10:15:00" },
+                    { heure_debut: "13/05/2025 13:15:00", heure_fin: "13/05/2025 13:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "13/05/2025 08:15:00", heure_arrivee: "13/05/2025 09:00:00", montant: 1250 },
+                    { id: 2, heure_depart: "13/05/2025 09:15:00", heure_arrivee: "13/05/2025 09:55:00", montant: 1150 },
+                    { id: 3, heure_depart: "13/05/2025 10:15:15", heure_arrivee: "13/05/2025 11:00:00", montant: 1300 },
+                    { id: 4, heure_depart: "13/05/2025 11:15:00", heure_arrivee: "13/05/2025 12:00:00", montant: 1400 }
+                ]
+            },
+            {
+                date: "14/05/2025",
+                heure_debut: "14/05/2025 07:30:00",
+                heure_fin: "14/05/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "14/05/2025 09:45:00", heure_fin: "14/05/2025 10:00:00" },
+                    { heure_debut: "14/05/2025 12:00:00", heure_fin: "14/05/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "14/05/2025 07:30:00", heure_arrivee: "14/05/2025 08:15:00", montant: 1400 },
+                    { id: 2, heure_depart: "14/05/2025 08:30:00", heure_arrivee: "14/05/2025 09:10:00", montant: 1250 },
+                    { id: 3, heure_depart: "14/05/2025 10:00:15", heure_arrivee: "14/05/2025 10:45:00", montant: 1300 },
+                    { id: 4, heure_depart: "14/05/2025 11:00:00", heure_arrivee: "14/05/2025 11:45:00", montant: 1350 }
+                ]
+            },
+            {
+                date: "15/05/2025",
+                heure_debut: "15/05/2025 08:00:00",
+                heure_fin: "15/05/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "15/05/2025 10:15:00", heure_fin: "15/05/2025 10:30:00" },
+                    { heure_debut: "15/05/2025 12:45:00", heure_fin: "15/05/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "15/05/2025 08:00:00", heure_arrivee: "15/05/2025 08:45:00", montant: 1350 },
+                    { id: 2, heure_depart: "15/05/2025 09:00:00", heure_arrivee: "15/05/2025 09:40:00", montant: 1250 },
+                    { id: 3, heure_depart: "15/05/2025 10:30:15", heure_arrivee: "15/05/2025 11:15:00", montant: 1400 },
+                    { id: 4, heure_depart: "15/05/2025 11:30:00", heure_arrivee: "15/05/2025 12:15:00", montant: 1300 }
+                ]
+            },
+            {
+                date: "16/05/2025",
+                heure_debut: "16/05/2025 07:45:00",
+                heure_fin: "16/05/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "16/05/2025 09:30:00", heure_fin: "16/05/2025 09:45:00" },
+                    { heure_debut: "16/05/2025 12:30:00", heure_fin: "16/05/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "16/05/2025 07:45:00", heure_arrivee: "16/05/2025 08:30:00", montant: 1300 },
+                    { id: 2, heure_depart: "16/05/2025 08:45:00", heure_arrivee: "16/05/2025 09:25:00", montant: 1200 },
+                    { id: 3, heure_depart: "16/05/2025 09:45:15", heure_arrivee: "16/05/2025 10:30:00", montant: 1350 },
+                    { id: 4, heure_depart: "16/05/2025 10:45:00", heure_arrivee: "16/05/2025 11:30:00", montant: 1250 }
+                ]
+            }
+        ];
+        const journeesJuin = [
+            {
+                date: "02/06/2025",
+                heure_debut: "02/06/2025 08:00:00",
+                heure_fin: "02/06/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "02/06/2025 10:15:00", heure_fin: "02/06/2025 10:30:00" },
+                    { heure_debut: "02/06/2025 12:45:00", heure_fin: "02/06/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "02/06/2025 08:00:00", heure_arrivee: "02/06/2025 08:45:00", montant: 1400 },
+                    { id: 2, heure_depart: "02/06/2025 09:00:00", heure_arrivee: "02/06/2025 09:40:00", montant: 1300 },
+                    { id: 3, heure_depart: "02/06/2025 10:30:15", heure_arrivee: "02/06/2025 11:15:00", montant: 1450 },
+                    { id: 4, heure_depart: "02/06/2025 11:30:00", heure_arrivee: "02/06/2025 12:15:00", montant: 1350 },
+                    { id: 5, heure_depart: "02/06/2025 13:15:15", heure_arrivee: "02/06/2025 14:00:00", montant: 1250 }
+                ]
+            },
+            {
+                date: "03/06/2025",
+                heure_debut: "03/06/2025 07:45:00",
+                heure_fin: "03/06/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "03/06/2025 09:30:00", heure_fin: "03/06/2025 09:45:00" },
+                    { heure_debut: "03/06/2025 12:30:00", heure_fin: "03/06/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "03/06/2025 07:45:00", heure_arrivee: "03/06/2025 08:30:00", montant: 1450 },
+                    { id: 2, heure_depart: "03/06/2025 08:45:00", heure_arrivee: "03/06/2025 09:25:00", montant: 1350 },
+                    { id: 3, heure_depart: "03/06/2025 09:45:15", heure_arrivee: "03/06/2025 10:30:00", montant: 1500 },
+                    { id: 4, heure_depart: "03/06/2025 10:45:00", heure_arrivee: "03/06/2025 11:30:00", montant: 1400 }
+                ]
+            },
+            {
+                date: "04/06/2025",
+                heure_debut: "04/06/2025 08:15:00",
+                heure_fin: "04/06/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "04/06/2025 10:00:00", heure_fin: "04/06/2025 10:15:00" },
+                    { heure_debut: "04/06/2025 13:15:00", heure_fin: "04/06/2025 13:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "04/06/2025 08:15:00", heure_arrivee: "04/06/2025 09:00:00", montant: 1350 },
+                    { id: 2, heure_depart: "04/06/2025 09:15:00", heure_arrivee: "04/06/2025 09:55:00", montant: 1250 },
+                    { id: 3, heure_depart: "04/06/2025 10:15:15", heure_arrivee: "04/06/2025 11:00:00", montant: 1400 },
+                    { id: 4, heure_depart: "04/06/2025 11:15:00", heure_arrivee: "04/06/2025 12:00:00", montant: 1500 }
+                ]
+            },
+            {
+                date: "05/06/2025",
+                heure_debut: "05/06/2025 07:30:00",
+                heure_fin: "05/06/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "05/06/2025 09:45:00", heure_fin: "05/06/2025 10:00:00" },
+                    { heure_debut: "05/06/2025 12:00:00", heure_fin: "05/06/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "05/06/2025 07:30:00", heure_arrivee: "05/06/2025 08:15:00", montant: 1500 },
+                    { id: 2, heure_depart: "05/06/2025 08:30:00", heure_arrivee: "05/06/2025 09:10:00", montant: 1350 },
+                    { id: 3, heure_depart: "05/06/2025 10:00:15", heure_arrivee: "05/06/2025 10:45:00", montant: 1400 },
+                    { id: 4, heure_depart: "05/06/2025 11:00:00", heure_arrivee: "05/06/2025 11:45:00", montant: 1450 }
+                ]
+            },
+            {
+                date: "06/06/2025",
+                heure_debut: "06/06/2025 08:00:00",
+                heure_fin: "06/06/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "06/06/2025 10:15:00", heure_fin: "06/06/2025 10:30:00" },
+                    { heure_debut: "06/06/2025 12:45:00", heure_fin: "06/06/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "06/06/2025 08:00:00", heure_arrivee: "06/06/2025 08:45:00", montant: 1450 },
+                    { id: 2, heure_depart: "06/06/2025 09:00:00", heure_arrivee: "06/06/2025 09:40:00", montant: 1350 },
+                    { id: 3, heure_depart: "06/06/2025 10:30:15", heure_arrivee: "06/06/2025 11:15:00", montant: 1500 },
+                    { id: 4, heure_depart: "06/06/2025 11:30:00", heure_arrivee: "06/06/2025 12:15:00", montant: 1400 }
+                ]
+            },
+            {
+                date: "09/06/2025", // Lundi suivant
+                heure_debut: "09/06/2025 07:45:00",
+                heure_fin: "09/06/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "09/06/2025 09:30:00", heure_fin: "09/06/2025 09:45:00" },
+                    { heure_debut: "09/06/2025 12:30:00", heure_fin: "09/06/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "09/06/2025 07:45:00", heure_arrivee: "09/06/2025 08:30:00", montant: 1400 },
+                    { id: 2, heure_depart: "09/06/2025 08:45:00", heure_arrivee: "09/06/2025 09:25:00", montant: 1300 },
+                    { id: 3, heure_depart: "09/06/2025 09:45:15", heure_arrivee: "09/06/2025 10:30:00", montant: 1450 },
+                    { id: 4, heure_depart: "09/06/2025 10:45:00", heure_arrivee: "09/06/2025 11:30:00", montant: 1350 }
+                ]
+            },
+            {
+                date: "10/06/2025",
+                heure_debut: "10/06/2025 08:15:00",
+                heure_fin: "10/06/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "10/06/2025 10:00:00", heure_fin: "10/06/2025 10:15:00" },
+                    { heure_debut: "10/06/2025 13:15:00", heure_fin: "10/06/2025 13:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "10/06/2025 08:15:00", heure_arrivee: "10/06/2025 09:00:00", montant: 1350 },
+                    { id: 2, heure_depart: "10/06/2025 09:15:00", heure_arrivee: "10/06/2025 09:55:00", montant: 1250 },
+                    { id: 3, heure_depart: "10/06/2025 10:15:15", heure_arrivee: "10/06/2025 11:00:00", montant: 1400 },
+                    { id: 4, heure_depart: "10/06/2025 11:15:00", heure_arrivee: "10/06/2025 12:00:00", montant: 1500 }
+                ]
+            },
+            {
+                date: "11/06/2025",
+                heure_debut: "11/06/2025 07:30:00",
+                heure_fin: "11/06/2025 19:15:00",
+                arrets: [
+                    { heure_debut: "11/06/2025 09:45:00", heure_fin: "11/06/2025 10:00:00" },
+                    { heure_debut: "11/06/2025 12:00:00", heure_fin: "11/06/2025 12:30:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "11/06/2025 07:30:00", heure_arrivee: "11/06/2025 08:15:00", montant: 1500 },
+                    { id: 2, heure_depart: "11/06/2025 08:30:00", heure_arrivee: "11/06/2025 09:10:00", montant: 1350 },
+                    { id: 3, heure_depart: "11/06/2025 10:00:15", heure_arrivee: "11/06/2025 10:45:00", montant: 1400 },
+                    { id: 4, heure_depart: "11/06/2025 11:00:00", heure_arrivee: "11/06/2025 11:45:00", montant: 1450 }
+                ]
+            },
+            {
+                date: "12/06/2025",
+                heure_debut: "12/06/2025 08:00:00",
+                heure_fin: "12/06/2025 19:45:00",
+                arrets: [
+                    { heure_debut: "12/06/2025 10:15:00", heure_fin: "12/06/2025 10:30:00" },
+                    { heure_debut: "12/06/2025 12:45:00", heure_fin: "12/06/2025 13:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "12/06/2025 08:00:00", heure_arrivee: "12/06/2025 08:45:00", montant: 1450 },
+                    { id: 2, heure_depart: "12/06/2025 09:00:00", heure_arrivee: "12/06/2025 09:40:00", montant: 1350 },
+                    { id: 3, heure_depart: "12/06/2025 10:30:15", heure_arrivee: "12/06/2025 11:15:00", montant: 1500 },
+                    { id: 4, heure_depart: "12/06/2025 11:30:00", heure_arrivee: "12/06/2025 12:15:00", montant: 1400 }
+                ]
+            },
+            {
+                date: "13/06/2025",
+                heure_debut: "13/06/2025 07:45:00",
+                heure_fin: "13/06/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "13/06/2025 09:30:00", heure_fin: "13/06/2025 09:45:00" },
+                    { heure_debut: "13/06/2025 12:30:00", heure_fin: "13/06/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "13/06/2025 07:45:00", heure_arrivee: "13/06/2025 08:30:00", montant: 1400 },
+                    { id: 2, heure_depart: "13/06/2025 08:45:00", heure_arrivee: "13/06/2025 09:25:00", montant: 1300 },
+                    { id: 3, heure_depart: "13/06/2025 09:45:15", heure_arrivee: "13/06/2025 10:30:00", montant: 1450 },
+                    { id: 4, heure_depart: "13/06/2025 10:45:00", heure_arrivee: "13/06/2025 11:30:00", montant: 1350 }
+                ]
+            }
+        ];
+        const journees = journeesJanvier.concat(journeesFevrier).concat(journeesMars).concat(journeesAvril)
+            .concat(journeesMai).concat(journeesJuin);
+
+
+        let currentView = 'week'; // 'week' ou 'month'
+        let currentStartDate = getStartOfWeek(new Date());
+
+        function getStartOfWeek(dateInput) {
+            const date = new Date(dateInput);
+            const day = date.getDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
+
+            // Décale pour tomber sur le lundi précédent (ou aujourd'hui si lundi)
+            const diff = (day === 0 ? -6 : 1) - day;
+
+            const startOfWeek = new Date(date);
+            startOfWeek.setDate(date.getDate() + diff);
+            startOfWeek.setHours(0, 0, 0, 0); // Mise à minuit
+
+            return startOfWeek;
+        }
+
+        function getWeekDates(start) {
+            const dates = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                dates.push(d);
+            }
+            return dates;
+        }
+
+        function getMonthRange(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const first = new Date(year, month, 1);
+            const last = new Date(year, month + 1, 0);
+            return { start: first, end: last };
+        }
+
+
+        // Fonction utilitaire pour parser une date
+        const parseDate = (str) => new Date(str.replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$2/$1/$3"));
+
+        function toHours(ms) {
+            return ms / 1000 / 60 / 60;
+        }
+
+        // Calcul des données principales
+        let labels = [];
+        let totalDurations = [];
+        let pauseDurations = [];
+        let colors = [];
+        let performances = [];
+        let activeDurations = [];
+        let activeColors = [];
+        let pauseColors = [];
+
+        let dureeCible = 12; // heures
+        let pauseMax = 1; // heures
+        let maxEcartJourneeTolere = 2;
+        let maxPauseToleree = 2;
+        let recette_attendu = 10000
+        let maxEcartRecetteToleree = 5000
+        let recettes = []
+
+        let dataMap = new Map();
+
+        function getColorFromScore(score, opacity = 1) {
+            const ratio = 1 - score / 100; // 0 (score élevé) -> 1 (score faible)
+            const r = Math.floor(33 + ratio * (244 - 33));
+            const g = Math.floor(150 - ratio * 100);
+            const b = Math.floor(243 - ratio * 200);
+            return `rgba(${r}, ${g}, ${b}, ${opacity})`; // RGBA : on peut moduler l’opacité
+        }
+        function computePerformance(total, pauses, courses) {
+            const ecartJournee = total - dureeCible;
+            const ecartPause = Math.max(0, pauses - pauseMax);
+            const scoreJournee = Math.max(0, 100 + (ecartJournee / maxEcartJourneeTolere) * 50);
+            const scorePause = Math.max(0, 100 - (ecartPause / maxPauseToleree) * 50);
+            const recette = courses.reduce((acc, curr) => acc + curr.montant, 0)
+            const ecartRecette = recette - recette_attendu
+            const scoreRecette = Math.max(0, 100 + (ecartRecette / maxEcartRecetteToleree) * 50)
+            return Math.round((scoreJournee + scorePause + scoreRecette * 2) / 4);
+        }
+        function getRecetteScoreColor(recette, objectif) {
+            const ratio = recette / objectif;
+
+            if (ratio >= 1) {
+                // Objectif atteint ou dépassé : vert froid
+                return 'rgba(0, 150, 0, 0.8)';
+            } else if (ratio >= 0.75) {
+                return 'rgba(180, 180, 0, 0.8)'; // Jaune
+            } else if (ratio >= 0.5) {
+                return 'rgba(220, 120, 0, 0.8)'; // Orange
+            } else {
+                return 'rgba(200, 0, 0, 0.8)'; // Rouge
+            }
+        }
+        function getDateRange(startDate, endDate) {
+            const dates = [];
+            let current = new Date(startDate);
+
+            while (current <= endDate) {
+                dates.push(new Date(current));
+                current.setDate(current.getDate() + 1);
+            }
+
+            return dates;
+        }
+
+
+        function renderJourneesChart() {
+            if (currentView === 'week') {
+                const endDate = new Date(currentStartDate);
+                endDate.setDate(currentStartDate.getDate() + 6);
+                prepareJourneesChartData(journees, currentStartDate, endDate)
+            }
+            else {
+                const { start, end } = getMonthRange(currentStartDate);
+                prepareJourneesChartData(journees, start, end)
+            }
+
+            const ctx = document.getElementById("journeesChart").getContext("2d");
+
+            if (window.journeesChart instanceof Chart) {
+                window.journeesChart.destroy();
+            }
+            if (window.recettesChart instanceof Chart) {
+                window.recettesChart.destroy();
+            }
+
+            window.journeesChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "Temps total",
+                            data: activeDurations,
+                            backgroundColor: activeColors,
+                            stack: 'stack1'
+                        },
+                        {
+                            label: "Temps de pause",
+                            data: pauseDurations,
+                            backgroundColor: pauseColors,
+                            stack: 'stack1'
+                        }
+                    ]
+                },
+                options: {
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const jour = journees.find(j => j.date === labels[index])
+                            afficherDetails(jour, index);
+                        }
+                    },
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Durée des journées avec pauses et performance'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: context => {
+                                    const index = context[0].dataIndex;
+                                    return `Score de performance : ${performances[index]}%`;
+                                }
+                            }
+                        },
+                        legend: {
+                            labels: {
+                                color: '#333',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: 'Jour'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: 'Durée (heures)'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            const recettesCtx = document.getElementById("recettesChart").getContext("2d");
+
+            window.recettesChart = new Chart(recettesCtx, {
+                type: "bar",
+                data: {
+                    labels,
+                    datasets: [{
+                        label: "Recette journalière",
+                        data: recettes,
+                        backgroundColor: recettes.map(r => getRecetteScoreColor(r, recette_attendu)),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Recette par jour'
+                        },
+                        legend: { display: true },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => `Recette: ${context.parsed.y} FCFA -- ${context.parsed.y * 100 / recette_attendu} %`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: "Montant (FCFA)"
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: "Date"
+                            }
+                        }
+                    }
+                }
+            });
+
+        }
+
+
+
+        function prepareJourneesChartData(journeesData, startDate, endDate) {
+            const allDates = getDateRange(startDate, endDate);
+            const dataMap = new Map();
+            let dateKey = ""
+
+            journees.forEach(j => {
+                dataMap.set(j.date, j);
+            });
+
+            labels = []
+            activeDurations = []
+            pauseDurations = []
+            activeColors = []
+            pauseColors = []
+            performances = []
+            recettes = []
+
+
+            allDates.forEach(date => {
+                dateKey = date.toLocaleString("fr-FR").split(" ")[0];
+                labels.push(dateKey)
+
+                const day = dataMap.get(dateKey);
+
+                if (day) {
+                    const start = parseDate(day.heure_debut);
+                    const end = parseDate(day.heure_fin);
+                    const total = toHours(end - start);
+
+                    const pauses = day.arrets.reduce((sum, arret) => {
+                        const ps = parseDate(arret.heure_debut);
+                        const pe = parseDate(arret.heure_fin);
+                        return sum + toHours(pe - ps);
+                    }, 0);
+
+                    const active = total - pauses;
+
+                    const perf = computePerformance(total, pauses, day.courses);
+
+                    activeDurations.push(active);
+                    pauseDurations.push(pauses);
+
+                    // Couleur forte pour activité, atténuée pour pause
+                    activeColors.push(getColorFromScore(perf, 1));     // opaque
+                    pauseColors.push(getColorFromScore(perf, 0.3));    // semi-transparent
+                    performances.push(perf);
+                    recettes.push(day.courses.reduce((acc, curr) => acc + curr.montant, 0))
+                    dataMap.set(day.date, day); // fonction existante
+                } else {
+                    // Jour sans activité
+                    activeDurations.push(0);
+                    pauseDurations.push(0);
+                    recettes.push(0)
+                }
+            });
+        }
+
+        renderJourneesChart()
+
+
+        document.getElementById("prevWeekBtn").addEventListener("click", () => {
+            if (currentView === 'week') {
+                currentStartDate.setDate(currentStartDate.getDate() - 7);
+            }
+            else {
+                currentStartDate.setMonth(currentStartDate.getMonth() - 1)
+            }
+            renderJourneesChart();
+        });
+
+        document.getElementById("nextWeekBtn").addEventListener("click", () => {
+            if (currentView === 'week') {
+                currentStartDate.setDate(currentStartDate.getDate() + 7);
+            }
+            else {
+                currentStartDate.setMonth(currentStartDate.getMonth() + 1)
+            }
+            renderJourneesChart();
+        });
+
+        document.getElementById("toggleMonthViewBtn").addEventListener("click", () => {
+            if (currentView === 'week') {
+                currentView = 'month';
+            } else {
+                currentView = 'week';
+            }
+            renderJourneesChart();
+        });
+
+
+
+
+
+
+        function afficherDetails(jour, index) {
+            document.getElementById("jourTitle").textContent = jour.date;
+            document.getElementById("detailsContainer").style.display = "flex";
+
+            // Graphique 1 : temps courses vs temps actifs sans courses
+            const tempsCourses = jour.courses.reduce((acc, c) => acc + (parseDate(c.heure_arrivee) - parseDate(c.heure_depart)), 0);
+            const tempsCoursesToHours = toHours(tempsCourses)
+
+            if (window.tempsUtilisationChart instanceof Chart) {
+                window.tempsUtilisationChart.destroy()
+            }
+            if (window.dureeCoursesChart instanceof Chart) {
+                window.dureeCoursesChart.destroy()
+            }
+            if (window.distributionHorairesChart instanceof Chart) {
+                window.distributionHorairesChart.destroy()
+            }
+
+            const ctx1 = document.getElementById("tempsUtilisationChart").getContext("2d");
+
+            window.tempsUtilisationChart = new Chart(ctx1, {
+                type: "bar",
+                data: {
+                    labels: ["Temps de courses", "Temps actif sans courses"],
+                    datasets: [{
+                        label: "heures",
+                        data: [tempsCoursesToHours, activeDurations[index] - tempsCoursesToHours],
+                        backgroundColor: ["#4caf50", "#ff9800"]
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Graphique 2 : durée de chaque course
+            const ctx2 = document.getElementById("dureeCoursesChart").getContext("2d");
+            window.dureeCoursesChart = new Chart(ctx2, {
+                type: "bar",
+                data: {
+                    labels: jour.courses.map(c => `Course ${c.id}`),
+                    datasets: [{
+                        label: "Durée (heure)",
+                        data: jour.courses.map(c =>
+                            toHours(parseDate(c.heure_arrivee) - parseDate(c.heure_depart))
+                        ),
+                        backgroundColor: "#2196f3"
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Graphique 3 : distribution des courses par tranches de 2h
+            const blocs = new Array(12).fill(0);
+            jour.courses.forEach(c => {
+                const h = parseDate(c.heure_depart).getHours();
+                const index = Math.floor(h / 2);
+                blocs[index]++;
+            });
+            const ctx3 = document.getElementById("distributionHorairesChart").getContext("2d");
+            window.distributionHorairesChart = new Chart(ctx3, {
+                type: "bar",
+                data: {
+                    labels: Array.from({ length: 12 }, (_, i) => `${i * 2}h-${i * 2 + 2}h`),
+                    datasets: [{
+                        label: "Nb courses",
+                        data: blocs,
+                        backgroundColor: "#673ab7"
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+    </script>
+</body>
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 20px;
+    }
+
+    .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        height: 300px;
+        /* ou ajustable */
+        margin-bottom: 20px;
+    }
+
+    canvas {
+        /* min-height: 350px; */
+    }
+
+    @media (min-width: 768px) {
+        .chart-container {
+            height: 400px;
+        }
+    }
+</style>
+
+</html>

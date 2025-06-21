@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analyse des Journées</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        canvas {
+            margin-bottom: 30px;
+        }
+
+        .charts-container {
+            display: none;
+            flex-direction: column;
+        }
+
+        .legend {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Performance quotidienne</h2>
+    <canvas id="journeesChart"></canvas>
+    <canvas id="recettesChart"></canvas>
+    <div style="display: flex; align-items: flex-start; gap: 40px; margin-top: 40px;">
+        <div style="display: flex; justify-content: space-between;">
+            <canvas id="recettesChart" width="600" height="300"></canvas>
+
+            <div style="display: flex; flex-direction: column; font-size: 14px;">
+                <strong style="margin-bottom: 10px;">Légende thermique :</strong>
+                <div style="display: flex; align-items: center; margin-bottom: 6px;">
+                    <div style="width: 20px; height: 20px; background-color: rgba(0, 150, 0, 0.8); margin-right: 8px;">
+                    </div>
+                    Objectif dépassé
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 6px;">
+                    <div
+                        style="width: 20px; height: 20px; background-color: rgba(180, 180, 0, 0.8); margin-right: 8px;">
+                    </div>
+                    Objectif atteint (≥ 75%)
+                </div>
+                <div style="display: flex; align-items: center; margin-bottom: 6px;">
+                    <div
+                        style="width: 20px; height: 20px; background-color: rgba(220, 120, 0, 0.8); margin-right: 8px;">
+                    </div>
+                    Objectif moyen (≥ 50%)
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <div style="width: 20px; height: 20px; background-color: rgba(200, 0, 0, 0.8); margin-right: 8px;">
+                    </div>
+                    Faible performance
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="charts-container" id="detailsContainer">
+        <h3>Détails de la journée : <span id="jourTitle"></span></h3>
+        <canvas id="tempsUtilisationChart"></canvas>
+        <canvas id="dureeCoursesChart"></canvas>
+        <canvas id="distributionHorairesChart"></canvas>
+
+    </div>
+
+    <script>
+        // Configuration de l'utilisateur
+        const userDefinedTargetHours = 8 * 3600; // 8 heures en secondes
+
+        // Exemple de données simulées
+        const journees = [
+            {
+                date: "18/06/2025",
+                heure_debut: "18/06/2025 07:44:35",
+                heure_fin: "18/06/2025 21:44:35",
+                arrets: [
+                    { heure_debut: "18/06/2025 08:15:00", heure_fin: "18/06/2025 08:30:00" },
+                    { heure_debut: "18/06/2025 12:40:00", heure_fin: "18/06/2025 13:00:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "18/06/2025 07:45:00", heure_arrivee: "18/06/2025 08:14:30", montant: 1500 },
+                    { id: 2, heure_depart: "18/06/2025 08:30:15", heure_arrivee: "18/06/2025 09:15:00", montant: 1200 },
+                    { id: 3, heure_depart: "18/06/2025 09:20:00", heure_arrivee: "18/06/2025 09:45:00", montant: 900 },
+                    { id: 4, heure_depart: "18/06/2025 10:00:00", heure_arrivee: "18/06/2025 10:40:00", montant: 1100 },
+                    { id: 5, heure_depart: "18/06/2025 11:00:00", heure_arrivee: "18/06/2025 11:55:00", montant: 1300 },
+                    { id: 6, heure_depart: "18/06/2025 13:00:30", heure_arrivee: "18/06/2025 13:45:00", montant: 1000 },
+                    { id: 7, heure_depart: "18/06/2025 14:00:00", heure_arrivee: "18/06/2025 14:40:00", montant: 900 },
+                    { id: 8, heure_depart: "18/06/2025 15:00:00", heure_arrivee: "18/06/2025 15:35:00", montant: 800 },
+                    { id: 9, heure_depart: "18/06/2025 16:00:00", heure_arrivee: "18/06/2025 16:45:00", montant: 1200 },
+                    { id: 10, heure_depart: "18/06/2025 17:00:00", heure_arrivee: "18/06/2025 17:40:00", montant: 1100 },
+                    { id: 11, heure_depart: "18/06/2025 18:00:00", heure_arrivee: "18/06/2025 18:45:00", montant: 1300 }
+                ]
+            },
+            {
+                date: "19/06/2025",
+                heure_debut: "19/06/2025 08:00:00",
+                heure_fin: "19/06/2025 20:00:00",
+                arrets: [
+                    { heure_debut: "19/06/2025 10:00:00", heure_fin: "19/06/2025 10:15:00" },
+                    { heure_debut: "19/06/2025 13:00:00", heure_fin: "19/06/2025 13:30:00" },
+                    { heure_debut: "19/06/2025 16:00:00", heure_fin: "19/06/2025 16:15:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "19/06/2025 08:00:00", heure_arrivee: "19/06/2025 08:40:00", montant: 1100 },
+                    { id: 2, heure_depart: "19/06/2025 08:45:00", heure_arrivee: "19/06/2025 09:20:00", montant: 1000 },
+                    { id: 3, heure_depart: "19/06/2025 09:30:00", heure_arrivee: "19/06/2025 10:00:00", montant: 900 },
+                    { id: 4, heure_depart: "19/06/2025 10:15:00", heure_arrivee: "19/06/2025 10:50:00", montant: 1000 },
+                    { id: 5, heure_depart: "19/06/2025 11:00:00", heure_arrivee: "19/06/2025 11:40:00", montant: 1100 },
+                    { id: 6, heure_depart: "19/06/2025 11:45:00", heure_arrivee: "19/06/2025 12:30:00", montant: 1200 },
+                    { id: 7, heure_depart: "19/06/2025 13:30:00", heure_arrivee: "19/06/2025 14:15:00", montant: 1100 },
+                    { id: 8, heure_depart: "19/06/2025 14:20:00", heure_arrivee: "19/06/2025 15:00:00", montant: 900 },
+                    { id: 9, heure_depart: "19/06/2025 15:10:00", heure_arrivee: "19/06/2025 15:55:00", montant: 1000 },
+                    { id: 10, heure_depart: "19/06/2025 16:15:00", heure_arrivee: "19/06/2025 17:00:00", montant: 1100 },
+                    { id: 11, heure_depart: "19/06/2025 17:05:00", heure_arrivee: "19/06/2025 17:40:00", montant: 950 },
+                    { id: 12, heure_depart: "19/06/2025 17:45:00", heure_arrivee: "19/06/2025 18:30:00", montant: 1050 },
+                    { id: 13, heure_depart: "19/06/2025 18:35:00", heure_arrivee: "19/06/2025 19:20:00", montant: 1200 }
+                ]
+            },
+            {
+                date: "20/06/2025",
+                heure_debut: "20/06/2025 08:10:00",
+                heure_fin: "20/06/2025 19:30:00",
+                arrets: [
+                    { heure_debut: "20/06/2025 11:00:00", heure_fin: "20/06/2025 11:20:00" },
+                    { heure_debut: "20/06/2025 14:30:00", heure_fin: "20/06/2025 14:45:00" }
+                ],
+                courses: [
+                    { id: 1, heure_depart: "20/06/2025 08:10:00", heure_arrivee: "20/06/2025 08:55:00", montant: 1200 },
+                    { id: 2, heure_depart: "20/06/2025 09:00:00", heure_arrivee: "20/06/2025 09:40:00", montant: 1000 },
+                    { id: 3, heure_depart: "20/06/2025 09:45:00", heure_arrivee: "20/06/2025 10:25:00", montant: 1100 },
+                    { id: 4, heure_depart: "20/06/2025 10:30:00", heure_arrivee: "20/06/2025 11:15:00", montant: 1200 },
+                    { id: 5, heure_depart: "20/06/2025 11:20:00", heure_arrivee: "20/06/2025 12:00:00", montant: 1000 },
+                    { id: 6, heure_depart: "20/06/2025 12:10:00", heure_arrivee: "20/06/2025 12:50:00", montant: 900 },
+                    { id: 7, heure_depart: "20/06/2025 13:00:00", heure_arrivee: "20/06/2025 13:40:00", montant: 950 },
+                    { id: 8, heure_depart: "20/06/2025 13:45:00", heure_arrivee: "20/06/2025 14:20:00", montant: 800 },
+                    { id: 9, heure_depart: "20/06/2025 14:50:00", heure_arrivee: "20/06/2025 15:30:00", montant: 1000 },
+                    { id: 10, heure_depart: "20/06/2025 15:35:00", heure_arrivee: "20/06/2025 16:10:00", montant: 900 },
+                    { id: 11, heure_depart: "20/06/2025 16:15:00", heure_arrivee: "20/06/2025 17:00:00", montant: 1100 },
+                    { id: 12, heure_depart: "20/06/2025 17:05:00", heure_arrivee: "20/06/2025 17:50:00", montant: 1050 },
+                    { id: 13, heure_depart: "20/06/2025 17:55:00", heure_arrivee: "20/06/2025 18:30:00", montant: 950 },
+                    { id: 14, heure_depart: "20/06/2025 18:35:00", heure_arrivee: "20/06/2025 19:15:00", montant: 1150 }
+                ]
+            },
+            {
+                date: "21/06/2025",
+                heure_debut: "21/06/2025 08:30:00",
+                heure_fin: "21/06/2025 13:45:00",
+                arrets: [
+                    { heure_debut: "21/06/2025 08:30:00", heure_fin: "21/06/2025 09:15:00" }, // Pause matinale
+                    { heure_debut: "21/06/2025 10:00:00", heure_fin: "21/06/2025 10:45:00" }, // Problème technique
+                ],
+                courses: [
+                    { id: 1, heure_depart: "21/06/2025 09:15:10", heure_arrivee: "21/06/2025 09:35:00", montant: 600 },
+                    { id: 2, heure_depart: "21/06/2025 09:50:00", heure_arrivee: "21/06/2025 10:00:00", montant: 450 },
+                    { id: 3, heure_depart: "21/06/2025 10:45:15", heure_arrivee: "21/06/2025 11:00:00", montant: 500 },
+                    { id: 4, heure_depart: "21/06/2025 13:30:10", heure_arrivee: "21/06/2025 13:45:00", montant: 400 },
+                ]
+            },
+        ];
+
+        // Fonction utilitaire pour parser une date
+        const parseDate = (str) => new Date(str.replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$2/$1/$3"));
+
+        function toHours(ms) {
+            return ms / 1000 / 60 / 60;
+        }
+
+        // Calcul des données principales
+        const labels = [];
+        const totalDurations = [];
+        const pauseDurations = [];
+        const colors = [];
+        const performances = [];
+        const activeDurations = [];
+        const activeColors = [];
+        const pauseColors = [];
+
+        const dureeCible = 12; // heures
+        const pauseMax = 1; // heures
+        const maxEcartJourneeTolere = 2;
+        const maxPauseToleree = 2;
+        const recette_attendu = 10000
+        const maxEcartRecetteToleree = 5000
+
+        journees.forEach((day, i) => {
+            const start = parseDate(day.heure_debut);
+            const end = parseDate(day.heure_fin);
+            const total = toHours(end - start);
+
+            const pauses = day.arrets.reduce((sum, arret) => {
+                const ps = parseDate(arret.heure_debut);
+                const pe = parseDate(arret.heure_fin);
+                return sum + toHours(pe - ps);
+            }, 0);
+
+            const active = total - pauses;
+            const perf = computePerformance(total, pauses, day.courses);
+
+            labels.push(`Jour ${i + 1}`);
+            activeDurations.push(active);
+            pauseDurations.push(pauses);
+
+            // Couleur forte pour activité, atténuée pour pause
+            activeColors.push(getColorFromScore(perf, 1));     // opaque
+            pauseColors.push(getColorFromScore(perf, 0.3));    // semi-transparent
+            performances.push(perf);
+        });
+        function getColorFromScore(score, opacity = 1) {
+            const ratio = 1 - score / 100; // 0 (score élevé) -> 1 (score faible)
+            const r = Math.floor(33 + ratio * (244 - 33));
+            const g = Math.floor(150 - ratio * 100);
+            const b = Math.floor(243 - ratio * 200);
+            return `rgba(${r}, ${g}, ${b}, ${opacity})`; // RGBA : on peut moduler l’opacité
+        }
+        function computePerformance(total, pauses, courses) {
+            const ecartJournee = total - dureeCible;
+            const ecartPause = Math.max(0, pauses - pauseMax);
+            const scoreJournee = Math.max(0, 100 + (ecartJournee / maxEcartJourneeTolere) * 50);
+            const scorePause = Math.max(0, 100 - (ecartPause / maxPauseToleree) * 50);
+            const recette = courses.reduce((acc, curr) => acc + curr.montant, 0)
+            const ecartRecette = recette - recette_attendu
+            const scoreRecette = Math.max(0, 100 + (ecartRecette / maxEcartRecetteToleree) * 50)
+            return Math.round((scoreJournee + scorePause + scoreRecette * 2) / 4);
+        }
+        function getRecetteScoreColor(recette, objectif) {
+            const ratio = recette / objectif;
+
+            if (ratio >= 1) {
+                // Objectif atteint ou dépassé : vert froid
+                return 'rgba(0, 150, 0, 0.8)';
+            } else if (ratio >= 0.75) {
+                return 'rgba(180, 180, 0, 0.8)'; // Jaune
+            } else if (ratio >= 0.5) {
+                return 'rgba(220, 120, 0, 0.8)'; // Orange
+            } else {
+                return 'rgba(200, 0, 0, 0.8)'; // Rouge
+            }
+        }
+
+
+        const ctx = document.getElementById("journeesChart").getContext("2d");
+        const journeesChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Temps total",
+                        data: activeDurations,
+                        backgroundColor: activeColors,
+                        stack: 'stack1'
+                    },
+                    {
+                        label: "Temps de pause",
+                        data: pauseDurations,
+                        backgroundColor: pauseColors,
+                        stack: 'stack1'
+                    }
+                ]
+            },
+            options: {
+                onClick: (e, elements) => {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        afficherDetails(journees[index], index);
+                    }
+                },
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Durée des journées avec pauses et performance thermique'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterBody: context => {
+                                const index = context[0].dataIndex;
+                                return `Score de performance : ${performances[index]}%`;
+                            }
+                        }
+                    },
+                    legend: {
+                        labels: {
+                            color: '#333'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Jour'
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Durée (heures)'
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+
+
+        const recettesCtx = document.getElementById("recettesChart").getContext("2d");
+        const recettes = journees.map(d => d.courses.reduce((acc, curr) => acc + curr.montant, 0))
+
+        new Chart(recettesCtx, {
+            type: "bar",
+            data: {
+                labels: journees.map(d => d.date),
+                datasets: [{
+                    label: "Recette journalière",
+                    data: recettes,
+                    backgroundColor: recettes.map(r => getRecetteScoreColor(r, recette_attendu)),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `Recette: ${context.parsed.y} FCFA -- ${context.parsed.y * 100 / recette_attendu} %`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: "Montant (FCFA)"
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Date"
+                        }
+                    }
+                }
+            }
+        });
+
+        function afficherDetails(jour, index) {
+            document.getElementById("jourTitle").textContent = jour.date;
+            document.getElementById("detailsContainer").style.display = "flex";
+
+            // Graphique 1 : temps courses vs temps actifs sans courses
+            const tempsCourses = jour.courses.reduce((acc, c) => acc + (parseDate(c.heure_arrivee) - parseDate(c.heure_depart)), 0);
+            const tempsCoursesToHours = toHours(tempsCourses)
+
+            const ctx1 = document.getElementById("tempsUtilisationChart").getContext("2d");
+            new Chart(ctx1, {
+                type: "bar",
+                data: {
+                    labels: ["Temps de courses", "Temps actif sans courses"],
+                    datasets: [{
+                        label: "heures",
+                        data: [tempsCoursesToHours, activeDurations[index] - tempsCoursesToHours],
+                        backgroundColor: ["#4caf50", "#ff9800"]
+                    }]
+                },
+                options: { responsive: true }
+            });
+
+            // Graphique 2 : durée de chaque course
+            const ctx2 = document.getElementById("dureeCoursesChart").getContext("2d");
+            new Chart(ctx2, {
+                type: "bar",
+                data: {
+                    labels: jour.courses.map(c => `Course ${c.id}`),
+                    datasets: [{
+                        label: "Durée (heure)",
+                        data: jour.courses.map(c =>
+                            toHours(parseDate(c.heure_arrivee) - parseDate(c.heure_depart))
+                        ),
+                        backgroundColor: "#2196f3"
+                    }]
+                },
+                options: { responsive: true }
+            });
+
+            // Graphique 3 : distribution des courses par tranches de 2h
+            const blocs = new Array(12).fill(0);
+            jour.courses.forEach(c => {
+                const h = parseDate(c.heure_depart).getHours();
+                const index = Math.floor(h / 2);
+                blocs[index]++;
+            });
+            const ctx3 = document.getElementById("distributionHorairesChart").getContext("2d");
+            new Chart(ctx3, {
+                type: "bar",
+                data: {
+                    labels: Array.from({ length: 12 }, (_, i) => `${i * 2}h-${i * 2 + 2}h`),
+                    datasets: [{
+                        label: "Nb courses",
+                        data: blocs,
+                        backgroundColor: "#673ab7"
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
+    </script>
+</body>
+
+</html>
