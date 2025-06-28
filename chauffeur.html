@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Accueil</title>
+    <link rel="stylesheet" href="chauffeur.css" />
+    <link rel="manifest" href="manifest.json" />
+</head>
+
+<body>
+    <header>
+        <button id="logoutBtn"
+            style="background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Se
+            déconnecter</button>
+        <h1>Suivi de Journée</h1>
+    </header>
+
+    <main class="container">
+        <!-- Connexion -->
+        <section class="card center" id="identifiantSection">
+            <button id="start-day" class="primary">Commencer la journée</button>
+        </section>
+
+        <!-- Interface de la journée -->
+        <section id="tab" class="card" style="display: none;">
+            <div class="form-row">
+                <input type="number" id="montant" name="montant" min="0" max="50000" placeholder="Montant (€)" />
+                <button id="start-course" class="start">Démarrer une course</button>
+                <button id="stop-course" class="stop hide">Fin de course</button>
+            </div>
+
+            <h5>Courses du jour</h5>
+            <p id="courseStatus">Aucune course</p>
+
+            <!-- Vidéo & Galerie -->
+            <div class="video-container">
+                <video id="video" autoplay muted playsinline style="display: none;"></video>
+                <canvas id="canvas" class="hidden" style="display: none;"></canvas>
+                <div id="photo-gallery" class="photo-gallery"></div>
+            </div>
+
+            <!-- Contrôles supplémentaires -->
+            <div class="button-group">
+                <button id="stop-day" class="danger">Terminer la journée</button>
+                <button id="pause-day" class="secondary" style="display: none;">Pause</button>
+                <button id="end-pause-day" class="success" style="display: none;">Reprendre</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2025 - Suivi Journée, by Kisseime TEVOT</p>
+    </footer>
+
+    <!-- TensorFlow et BlazeFace -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.5"></script>
+    <script type="module" src="chauffeur.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>

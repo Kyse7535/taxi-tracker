@@ -2,60 +2,165 @@
 <html lang="fr">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Accueil</title>
-    <link rel="stylesheet" href="index.css" />
-    <link rel="manifest" href="manifest.json" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Connexion | Taxi Tracker</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #fff;
+        }
+
+        .login-container {
+            background-color: #1e2a38;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-container h2 {
+            margin-bottom: 24px;
+            font-size: 26px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .error-message {
+            margin-top: 10px;
+            color: #ff6b6b;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
 </head>
 
 <body>
-    <header>
-        <h1>Suivi de Journée</h1>
-    </header>
-
-    <main class="container">
-        <!-- Connexion -->
-        <section class="card center" id="identifiantSection">
-            <input type="text" id="identifiant" name="identifiant" placeholder="Identifiant" required />
-            <button id="start-day" class="primary">Commencer la journée</button>
-        </section>
-
-        <!-- Interface de la journée -->
-        <section id="tab" class="card" style="display: none;">
-            <div class="form-row">
-                <input type="number" id="montant" name="montant" min="0" max="50000" placeholder="Montant (€)" />
-                <button id="start-course" class="start">Démarrer une course</button>
-                <button id="stop-course" class="stop hide">Fin de course</button>
+    <div class="login-container">
+        <h2>Connexion - Taxi Tracker</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Identifiant (email)</label>
+                <input type="email" id="email" required>
             </div>
-
-            <h5>Courses du jour</h5>
-            <p id="courseStatus">Aucune course</p>
-
-            <!-- Vidéo & Galerie -->
-            <div class="video-container">
-                <video id="video" autoplay muted playsinline style="display: none;"></video>
-                <canvas id="canvas" class="hidden" style="display: none;"></canvas>
-                <div id="photo-gallery" class="photo-gallery"></div>
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <input type="password" id="password" required>
             </div>
+            <button type="submit">Se connecter</button>
+            <div class="error-message" id="errorMessage"></div>
+        </form>
+    </div>
+    <!-- <script type="module" src="app.js"></script> -->
+    <script>
+        const form = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        window.addEventListener("load", e => {
+            if (localStorage.getItem("identifiant") !== null) {
+                redirect(JSON.parse(localStorage.getItem("identifiant")))
+            }
+        })
 
-            <!-- Contrôles supplémentaires -->
-            <div class="button-group">
-                <button id="stop-day" class="danger">Terminer la journée</button>
-                <button id="pause-day" class="secondary" style="display: none;">Pause</button>
-                <button id="end-pause-day" class="success" style="display: none;">Reprendre</button>
-            </div>
-        </section>
-    </main>
+        function redirect(user) {
+            switch (user.role) {
+                case 'chauffeur':
+                    element = { nom: "lorem", prenom: "ipsum", id: "toto", proprietaire: "X", role: "chauffeur" }
+                    localStorage.setItem("identifiant", JSON.stringify(element))
+                    window.location.href = 'chauffeur.html';
+                    break;
+                case 'proprietaire':
+                    element = { nom: "lorem", prenom: "ipsum", id: "toto", chauffeurs: [], role: "proprietaire" }
+                    localStorage.setItem("identifiant", JSON.stringify(element))
+                    window.location.href = 'proprio.html';
+                    break;
+                case 'admin':
+                default:
+                    window.location.href = 'admin.html';
+                    break;
+            }
 
-    <footer>
-        <p>© 2025 - Suivi Journée, by Kisseime TEVOT</p>
-    </footer>
+        }
 
-    <!-- TensorFlow et BlazeFace -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.5"></script>
-    <script type="module" src="index.js"></script>
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            try {
+                const user = await mockFirebaseLogin(email, password);
+                let element = null
+                // 🔁 Redirection en fonction du rôle
+                redirect(user)
+
+            } catch (error) {
+                errorMessage.textContent = error.message;
+            }
+        });
+
+        // Mock de Firebase Auth
+        function mockFirebaseLogin(email, password) {
+            return new Promise((resolve, reject) => {
+                // Exemple de base de données d'utilisateurs fictifs
+                const users = {
+                    "admin@taxi.com": { password: "admin123", role: "admin" },
+                    "chauffeur@taxi.com": { password: "chauffeur123", role: "chauffeur" },
+                    "proprio@taxi.com": { password: "proprio123", role: "proprietaire" }
+                };
+
+                const user = users[email];
+                if (user && user.password === password) {
+                    resolve({ uid: "mockUID", email, role: user.role });
+                } else {
+                    reject(new Error("Identifiants invalides. Veuillez réessayer."));
+                }
+            });
+        }
+    </script>
 </body>
 
 </html>
